@@ -1,7 +1,9 @@
 Socket.IO File Upload
 =====================
 
-This module provide functionality to upload files from a browser to a Node.JS server that runs Socket.IO.  The intended audience are single-page web apps, but other types of Node.JS projects may benefit from this library.
+This module provides functionality to upload files from a browser to a Node.JS server that runs Socket.IO.  Throughout the process, if their browser supports WebSockets, the user will not submit a single HTTP request.
+
+The intended audience are single-page web apps, but other types of Node.JS projects may benefit from this library.
 
 The module is released under the X11 open-source license.
 
