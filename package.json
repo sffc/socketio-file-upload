@@ -1,0 +1,31 @@
+{
+  "name": "socketio-file-upload",
+  "version": "0.1.0",
+  "description": "Uploads files to a Node.JS server using Socket.IO",
+  "keywords": [
+    "upload",
+    "uploader",
+    "socket",
+    "socket.io"
+  ],
+  "dependencies": {
+    "socket.io": "*"
+  },
+  "files": [
+    "client.js",
+    "server.js",
+    "README.md"
+  ],
+  "main": "server.js",
+  "repository": {
+    "type": "git",
+    "url": "todo"
+  },
+  "homepage": "todo",
+  "author": {
+    "name": "Shane Carr",
+    "email": "shane.carr@wustl.edu"
+  },
+  "license": "X11",
+  "readmeFilename": "Readme.md"
+}
