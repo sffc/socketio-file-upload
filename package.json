@@ -19,9 +19,9 @@
   "main": "server.js",
   "repository": {
     "type": "git",
-    "url": "todo"
+    "url": "git://github.com/vote539/socketio-file-upload.git"
   },
-  "homepage": "todo",
+  "homepage": "https://github.com/vote539/socketio-file-upload",
   "author": {
     "name": "Shane Carr",
     "email": "shane.carr@wustl.edu"
