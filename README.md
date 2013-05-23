@@ -7,6 +7,29 @@ The intended audience are single-page web apps, but other types of Node.JS proje
 
 The module is released under the X11 open-source license.
 
+**Table of Contents**
+
+- [Installation](#installation)
+- [Client-Side Interface](#client-side-interface)
+    - [instance.listenOnInput(input)](#instancelistenoninputinput)
+    - [instance.listenOnDrop(element)](#instancelistenondropelement)
+    - [instance.prompt()](#instanceprompt)
+- [Client-Side Events](#events)
+    - [choose](#choose)
+    - [load](#load)
+    - [complete](#complete)
+- [Server-Side Interface](#server-side-interface)
+    - [SocketIOFileUploadServer.listen(app)](#socketiofileuploadserverlistenapp)
+    - [SocketIOFileUploadServer.router](#socketiofileuploadserverrouter)
+    - [instance.listen(socket)](#instancelistensocket)
+    - [instance.dir = "/path/to/upload/directory"](#instancedir-=-pathtouploaddirectory)
+    - [instance.mode = "0666"](#instancemode-=-0666)
+- [Server-Side Events](#events-1)
+    - [upload](#upload)
+    - [saved](#saved)
+    - [error](#error)
+- [Example](#example)
+
 ## Installation
 
 Navigate to your project directory and run:
