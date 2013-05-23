@@ -41,7 +41,7 @@ function SocketIOFileUpload(socket){
 	}
 
 	// Private and Public Variables
-	var callbacks = {}, inpt, uploadedFiles = [];
+	var callbacks = {}, inpt, uploadedFiles = [], readyCallbacks = [];
 	self.fileInputElementId = "siofu_input";
 	self.useText = false;
 
@@ -64,31 +64,9 @@ function SocketIOFileUpload(socket){
 	}
 
 	/**
-	 * Private function to transmit a file that has already been loaded to
-	 * the Node.JS server via Socket.IO.
-	 * @param  {File} file   The file being transmitted
-	 * @param  {FileReader} reader A loaded FileReader object
-	 * @return {void}
-	 */
-	var _sendToServer = function(file, reader){
-		try{
-			var useText = (typeof reader.result === "string");
-			socket.emit("siofu_upload", {
-				name: file.name,
-				lastModifiedDate: file.lastModifiedDate,
-				content: reader.result,
-				encoding: useText ? "text" : "octet",
-				id: uploadedFiles.length
-			});
-			uploadedFiles.push(file);
-		}catch(err){
-			throw err;
-		}
-	}
-
-	/**
-	 * Private function to load the file into memory using the HTML5
-	 * FileReader object.
+	 * Private function to load the file into memory using the HTML5 FileReader object
+	 * and then transmit that file through Socket.IO.
+	 * 
 	 * @param  {FileList} files An array of files
 	 * @return {void}
 	 */
@@ -98,21 +76,83 @@ function SocketIOFileUpload(socket){
 			// Evaluate each file in a closure, because we will need a new
 			// instance of FileReader for each file.
 			(function(file){
-				var reader = new FileReader();
-				reader.addEventListener("load", function(event){
-					var evntResult = _dispatch("load", {
-						file: file,
-						reader: event.target
-					});
-					if(evntResult){
-						_sendToServer(file, event.target);
-					}
+				// Dispatch an event to listeners and stop now if they don't want
+				// this file to be uploaded.
+				var evntResult = _dispatch("start", {
+					file: file
 				});
-				if(self.useText){
-					reader.readAsText(files[i]);
+				if(!evntResult) return;
+
+				// Scope variables
+				var reader = new FileReader(),
+					transmitPos = 0,
+					id = uploadedFiles.length,
+					useText = self.useText,
+					newName;
+				uploadedFiles.push(file);
+
+				// Listen to the "progress" event.  Transmit parts of files
+				// as soon as they are ready.
+				reader.addEventListener("progress", function(event){
+					var content;
+					if(useText){
+						content = reader.result.slice(transmitPos, event.loaded);
+					}else{
+						try{
+							content = new Uint8Array(reader.result, transmitPos, event.loaded);
+						}catch(error){
+							socket.emit("siofu_done", {
+								id: id,
+								interrupt: true
+							});
+							return;
+						}
+					}
+					socket.emit("siofu_progress", {
+						id: id,
+						start: transmitPos,
+						end: event.loaded,
+						content: content
+					});
+					transmitPos = event.loaded;
+				});
+
+				// When the file is fully loaded, tell the server.
+				reader.addEventListener("load", function(event){
+					socket.emit("siofu_done", {
+						id: id
+					});
+					_dispatch("load", {
+						file: file,
+						reader: reader,
+						name: newName
+					});
+				});
+
+				// Transmit the "start" message to the server.
+				socket.emit("siofu_start", {
+					name: file.name,
+					mtime: file.lastModifiedDate,
+					encoding: useText ? "text" : "octet",
+					id: id
+				});
+
+				// To avoid a race condition, we don't want to start transmitting to the
+				// server until the server says it is ready.
+				var readyCallback;
+				if(useText){
+					readyCallback = function(_newName){
+						reader.readAsText(file);
+						newName = _newName;
+					};
 				}else{
-					reader.readAsArrayBuffer(files[i]);
+					readyCallback = function(_newName){
+						reader.readAsArrayBuffer(file);
+						newName = _newName;
+					};
 				}
+				readyCallbacks.push(readyCallback);
+
 			})(files[i]);
 		}
 	}
@@ -253,7 +293,10 @@ function SocketIOFileUpload(socket){
 		return retVal;
 	}
 
-	// CONSTRUCTOR: Listen to the "complete" message on the socket.
+	// CONSTRUCTOR: Listen to the "complete" and "ready" messages on the socket.
+	socket.on("siofu_ready", function(data){
+		readyCallbacks[data.id](data.name);
+	});
 	socket.on("siofu_complete", function(data){
 		_dispatch("complete", {
 			file: uploadedFiles[data.id],

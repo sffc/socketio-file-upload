@@ -49,6 +49,8 @@ function SocketIOFileUploadServer() {
 	 */
 	self.mode = "0666";
 
+	var files = [];
+
 	/**
 	 * Private function to emit the "siofu_complete" message on the socket.
 	 * @param  {Number} id      The file ID as passed on the siofu_upload.
@@ -63,12 +65,11 @@ function SocketIOFileUploadServer() {
 	}
 
 	/**
-	 * Private function to recursively save the file by incrementing "inc" until
+	 * Private function to recursively find a file name by incrementing "inc" until
 	 * an empty file is found.
 	 * @param  {String}   ext   File extension
 	 * @param  {String}   base  File base name
 	 * @param  {Date}     mtime File modified time
-	 * @param  {String}   cntnt File content
 	 * @param  {Number}   inc   Current number to suffix the base name.  Pass -1
 	 *                          to not suffix a number to the base name.
 	 * @param  {Function} next  Callback function when the save is complete.
@@ -76,12 +77,12 @@ function SocketIOFileUploadServer() {
 	 *                          final base name.
 	 * @return {void}
 	 */
-	var _saveUploadWorker = function(ext, base, cntnt, mtime, inc, next){
+	var _findFileNameWorker = function(ext, base, inc, next){
 		var newBase = (inc === -1) ? base : base + "-" + inc;
 		var pathName = path.join(self.dir, newBase + ext);
 		fs.exists(pathName, function(exists){
 			if(exists){
-				_saveUploadWorker(ext, base, cntnt, mtime, inc+1, next);
+				_findFileNameWorker(ext, base, inc+1, next);
 			}else{
 				fs.open(pathName, "w", self.mode, function(err, fd){
 					if(err){
@@ -89,34 +90,8 @@ function SocketIOFileUploadServer() {
 						next(err);
 						return;
 					}
-					// Update the file modified time
-					fs.futimes(fd, new Date(), mtime, function(err){
-						// I'm not sure what arguments the futimes callback is passed.
-						// Based on node_file.cc, it looks like it is passed zero
-						// arguments (version 0.10.6 line 140), but the docs say that
-						// "the first argument is always reserved for an exception". 
-						if(err){
-							next(err);
-							return;
-						}
-						// We're ready to write the file.
-						var buffer = new Buffer(cntnt);
-						fs.write(fd, buffer, 0, buffer.length, null, function(err, bytes){
-							if(err){
-								next(err);
-								return;
-							}
-							// Close the file
-							fs.close(fd, function(err){
-								if(err){
-									next(err);
-									return;
-								}
-								// We're finished!
-								next(null, newBase);
-							});
-						});
-					});
+					// Pass the file handler and the new name to the callback.
+					next(null, newBase, pathName, fd);
 				});
 			}
 		});
@@ -128,61 +103,143 @@ function SocketIOFileUploadServer() {
 	 *                           text content.
 	 * @return {void}
 	 */
-	var _saveUpload = function(socket, fileInfo, id){
+	var _findFileName = function(fileInfo, next){
 		// Strip dangerous characters from the file name
 		var filesafeName = fileInfo.name.replace(/[^\w\-\.]/g, "_");
 		var ext = path.extname(filesafeName);
 		var base = path.basename(filesafeName, ext);
-		var mtime = fileInfo.lastModifiedDate;
-		var cntnt = fileInfo.content;
 
-		// Use a recursive function to save the file under the first available
-		// filename.
-		_saveUploadWorker(ext, base, cntnt, mtime, -1, function(err, newBase){
-			if(!err){
-				// File saved successfully!
-				var newName = newBase + ext;
-				self.emit("saved", {
-					file: fileInfo,
-					newName: newName
-				});
-				_emitComplete(socket, id, true);
-			}else{
-				// File did NOT save successfully!
-				self.emit("error", {
-					file: fileInfo,
-					error: err
-				});
-				_emitComplete(socket, id, false);
+		// Use a recursive function to save the file under the first available filename.
+		_findFileNameWorker(ext, base, -1, function(err, newBase, pathName, fd){
+			if(err){
+				next(err);
+				return;
 			}
+			fs.close(fd, function(err){
+				if(err){
+					next(err);
+					return;
+				}
+				next(null, newBase, pathName);
+			});
 		});
 	}
 
+	var _uploadDone = function(socket){
+		return function(data){
+			var fileInfo = files[data.id];
+			try{
+				if(fileInfo.writeStream){
+					fileInfo.writeStream.end();
+
+					// Update the file modified time.  This doesn't seem to work; I'm not
+					// sure if it's my error or a bug in Node.
+					fs.utimes(fileInfo.pathName, new Date(), fileInfo.mtime, function(err){
+						// I'm not sure what arguments the futimes callback is passed.
+						// Based on node_file.cc, it looks like it is passed zero
+						// arguments (version 0.10.6 line 140), but the docs say that
+						// "the first argument is always reserved for an exception". 
+						if(err){
+							_emitComplete(socket, data.id, false);
+							throw err;
+						}
+
+						// Emit the "saved" event to the server-side listeners
+						self.emit("saved", {
+							file: fileInfo
+						});
+						_emitComplete(socket, data.id, true);
+					});
+				}else{
+					_emitComplete(socket, data.id, true);
+				}
+			}catch(err){
+				console.log("SocketIOFileUploadServer Error (_uploadDone):");
+				console.log(err);
+			}
+
+			// Emit the "complete" event to the server-side listeners
+			self.emit("complete", {
+				file: fileInfo,
+				interrupt: !!data.interrupt
+			});
+		}
+	}
+
+	var _uploadProgress = function(socket){
+		return function(data){
+			var fileInfo = files[data.id],
+				buffer = new Buffer(data.content);
+			self.emit("progress", {
+				file: fileInfo,
+				buffer: buffer
+			});
+			try{
+				if(fileInfo.writeStream){
+					fileInfo.writeStream.write(buffer);
+				}
+			}catch(err){
+				console.log("SocketIOFileUploadServer Error (_uploadProgress):");
+				console.log(err);
+			}
+		}
+	}
+
 	/**
-	 * Private function to emit the "upload" event.
+	 * Private function to handle the start of a file upload.
 	 * @param  {Socket} socket The socket on which the listener is bound
 	 * @return {Function} A function compatible with a Socket.IO callback
 	 */
-	var _processUpload = function(socket){
+	var _uploadStart = function(socket){
 		return function(data){
+			// Save the file information
 			var fileInfo = {
 				name: data.name,
-				lastModifiedDate: new Date(data.lastModifiedDate),
-				content: data.content,
-				encoding: data.encoding
+				mtime: new Date(data.mtime),
+				encoding: data.encoding,
+				id: data.id
 			};
+			files[data.id] = fileInfo;
 
 			// Dispatch event to listeners on the server side
-			self.emit("upload", {
+			self.emit("start", {
 				file: fileInfo
 			});
 
-			// Save the file if necessary; otherwise, dispatch event to
-			// listeners on the client side
+			// If we're not saving the file, we are ready to start receiving data now.
 			if(!self.dir){
-				_emitComplete(socket, data.id, true);
+				socket.emit("siofu_ready", {
+					id: id,
+					name: null
+				});
 			}else{
-				_saveUpload(socket, fileInfo, data.id);
+				// Find a filename and get the handler.  Then tell the client that
+				// we're ready to start receiving data.
+				_findFileName(fileInfo, function(err, newBase, pathName){
+					if(err){
+						_emitComplete(socket, data.id, false);
+						self.emit("error", {
+							file: fileInfo,
+							error: err
+						});
+						return;
+					}
+
+					files[data.id].base = newBase;
+					files[data.id].pathName = pathName;
+
+					// Create a write stream.
+					var writeStream = fs.createWriteStream(pathName, {
+						mode: self.mode
+					});
+					writeStream.on("open", function(){
+						socket.emit("siofu_ready", {
+							id: data.id,
+							name: newBase
+						});
+					});
+					files[data.id].writeStream = writeStream;
+				});
 			}
 		}
 	};
@@ -195,7 +252,9 @@ function SocketIOFileUploadServer() {
 	 * @return {void}
 	 */
 	this.listen = function(socket) {
-		socket.on("siofu_upload", _processUpload(socket));
+		socket.on("siofu_start", _uploadStart(socket));
+		socket.on("siofu_progress", _uploadProgress(socket));
+		socket.on("siofu_done", _uploadDone(socket));
 	}
 }
 util.inherits(SocketIOFileUploadServer, EventEmitter);

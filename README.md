@@ -14,9 +14,10 @@ The module is released under the X11 open-source license.
     - [instance.listenOnInput(input)](#instancelistenoninputinput)
     - [instance.listenOnDrop(element)](#instancelistenondropelement)
     - [instance.prompt()](#instanceprompt)
-    - [instance.useText = false](#instanceuseText-=-false)
+    - [instance.useText = false](#instanceusetext-false)
 - [Client-Side Events](#events)
     - [choose](#choose)
+    - [start](#start)
     - [load](#load)
     - [complete](#complete)
 - [Server-Side Interface](#server-side-interface)
@@ -26,7 +27,9 @@ The module is released under the X11 open-source license.
     - [instance.dir = "/path/to/upload/directory"](#instancedir-=-pathtouploaddirectory)
     - [instance.mode = "0666"](#instancemode-=-0666)
 - [Server-Side Events](#events-1)
-    - [upload](#upload)
+    - [start](#start-2)
+    - [progress](#progress)
+    - [complete](#complete)
     - [saved](#saved)
     - [error](#error)
 - [Example](#example)
@@ -89,7 +92,7 @@ HTML:
 
 Unfortunately, this method does not work in Firefox for security reasons.  Read the code comments for more information.
 
-### instance.useText = false
+#### instance.useText = false
 
 Defaults to `false`, which transmits files as an octet array.  This is necessary for binary-type files, like images.
 
@@ -113,18 +116,27 @@ The user has chosen files to upload, through any of the channels you have implem
 
 * `event.files` an instance of a W3C FileList object
 
+#### start
+
+This event is fired immediately following the `choose` event, but once per file.  If you want to cancel the upload for this individual file, make your callback return `false`.
+
+##### Event Properties
+
+* `event.file` an instance of a W3C File object
+
 #### load
 
-A file has been loaded into an instance of the HTML5 FileReader object and is about to be sent to Socket.IO.  If you want to cancel the upload, make your callback return `false`.
+A file has been loaded into an instance of the HTML5 FileReader object and has been transmitted through Socket.IO.  We are awaiting a response from the server about whether the upload was successful; when we receive this response, a `complete` event will be dispatched.
 
 ##### Event Properties
 
 * `event.file` an instance of a W3C File object
 * `event.reader` an instance of a W3C FileReader object
+* `event.name` the filename to which the server saved the file
 
 #### complete
 
-A file has been sent to the server.
+The server has received our file.
 
 ##### Event Properties
 
@@ -187,13 +199,32 @@ Instances of `SocketIOFileUploadServer` implement [Node's `EventEmitter` interfa
 
 The events are documented below.
 
-#### upload
+#### start
 
-A file has been received from the client and currently resides in memory.
+The client has started the upload process.
 
 ##### Event Properties
 
-* `event.file` An object containing the file's `name`, `lastModifiedDate`, and `content`.
+* `event.file` An object containing the file's `name`, `mtime`, `encoding`, and `id`.
+    *Note:* `encoding` is either "text" if the file is being transmitted as plain text or "octet" if it is being transmitted using an ArrayBuffer.
+
+#### progress
+
+Data has been received from the client.
+
+##### Event Properties
+
+* `event.file` The same file object that would have been passed during the `start` event earlier.
+* `buffer` A buffer containing the data received from the client
+
+#### complete
+
+The transmission of a file is complete.
+
+##### Event Properties
+
+* `event.file` The same file object that would have been passed during the `start` event earlier.
+* `interrupt` true if the client said that the data was interrupted (not completely sent); false otherwise
 
 #### saved
 
@@ -201,8 +232,7 @@ A file has been successfully saved.
 
 ##### Event Properties
 
-* `event.file` The same file object that would have been passed during the `upload` event earlier.
-* `event.newName` The filename of the saved file (relative to the upload directory).
+* `event.file` The same file object that would have been passed during the `start` event earlier.
 
 #### error
 
@@ -210,7 +240,7 @@ An error was encountered in the saving of the file.
 
 ##### Event Properties
 
-* `event.file` The same file object that would have been passed during the `upload` event earlier.
+* `event.file` The same file object that would have been passed during the `start` event earlier.
 * `event.error` The I/O error that was encountered.
 
 ## Example
