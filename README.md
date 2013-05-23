@@ -14,6 +14,7 @@ The module is released under the X11 open-source license.
     - [instance.listenOnInput(input)](#instancelistenoninputinput)
     - [instance.listenOnDrop(element)](#instancelistenondropelement)
     - [instance.prompt()](#instanceprompt)
+    - [instance.useText = false](#instanceuseText-=-false)
 - [Client-Side Events](#events)
     - [choose](#choose)
     - [load](#load)
@@ -44,7 +45,7 @@ The client-side interface is inside the `SocketIOFileUpload` namespace.  Include
 
 When instantiating an instance of the `SocketIOFileUpload`, pass a reference to your socket.  See the Examples section.
 
-### Public Methods
+### Public Properties and Methods
 
 #### instance.listenOnInput(input)
 
@@ -87,6 +88,12 @@ HTML:
     <button id="file_button">Upload File</button>
 
 Unfortunately, this method does not work in Firefox for security reasons.  Read the code comments for more information.
+
+### instance.useText = false
+
+Defaults to `false`, which transmits files as an octet array.  This is necessary for binary-type files, like images.
+
+Set to `true` to transmit files as plain text instead.  This may save bandwidth if you expect to transmit only text files.
 
 ### Events
 

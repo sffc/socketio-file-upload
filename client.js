@@ -43,6 +43,7 @@ function SocketIOFileUpload(socket){
 	// Private and Public Variables
 	var callbacks = {}, inpt, uploadedFiles = [];
 	self.fileInputElementId = "siofu_input";
+	self.useText = false;
 
 	/**
 	 * Private method to dispatch a custom event on the instance.
@@ -71,10 +72,12 @@ function SocketIOFileUpload(socket){
 	 */
 	var _sendToServer = function(file, reader){
 		try{
+			var useText = (typeof reader.result === "string");
 			socket.emit("siofu_upload", {
 				name: file.name,
 				lastModifiedDate: file.lastModifiedDate,
 				content: reader.result,
+				encoding: useText ? "text" : "octet",
 				id: uploadedFiles.length
 			});
 			uploadedFiles.push(file);
@@ -105,7 +108,11 @@ function SocketIOFileUpload(socket){
 						_sendToServer(file, event.target);
 					}
 				});
-				reader.readAsText(files[i]);
+				if(self.useText){
+					reader.readAsText(files[i]);
+				}else{
+					reader.readAsArrayBuffer(files[i]);
+				}
 			})(files[i]);
 		}
 	}

@@ -168,7 +168,8 @@ function SocketIOFileUploadServer() {
 			var fileInfo = {
 				name: data.name,
 				lastModifiedDate: new Date(data.lastModifiedDate),
-				content: data.content
+				content: data.content,
+				encoding: data.encoding
 			};
 
 			// Dispatch event to listeners on the server side
