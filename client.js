@@ -129,7 +129,7 @@ window.SocketIOFileUpload = function(socket){
 				start: transmitPos,
 				end: event.loaded,
 				content: content,
-				base64: self.serializedOctets ? false : true
+				base64: !self.serializedOctets
 			});
 			transmitPos = event.loaded;
 		});
