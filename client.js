@@ -146,6 +146,22 @@ window.SocketIOFileUpload = function(socket){
 			});
 		});
 
+		// Listen for an "error" event.  Stop the transmission if one is received.
+		reader.addEventListener("error", function(){
+			socket.emit("siofu_done", {
+				id: id,
+				interrupt: true
+			});
+		});
+
+		// Do the same for the "abort" event.
+		reader.addEventListener("abort", function(){
+			socket.emit("siofu_done", {
+				id: id,
+				interrupt: true
+			});
+		});
+
 		// Transmit the "start" message to the server.
 		socket.emit("siofu_start", {
 			name: file.name,
