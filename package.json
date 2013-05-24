@@ -1,6 +1,6 @@
 {
   "name": "socketio-file-upload",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "Uploads files to a Node.JS server using Socket.IO",
   "keywords": [
     "upload",
@@ -13,6 +13,7 @@
   },
   "files": [
     "client.js",
+    "client.min.js",
     "server.js",
     "README.md"
   ],
