@@ -34,6 +34,8 @@ var util = require("util"),
 
 
 function SocketIOFileUploadServer() {
+	"use strict";
+
 	EventEmitter.call(this);
 	var self = this; // avoids context issues
 
@@ -62,7 +64,7 @@ function SocketIOFileUploadServer() {
 			id: id,
 			success: success
 		});
-	}
+	};
 
 	/**
 	 * Private function to recursively find a file name by incrementing "inc" until
@@ -95,7 +97,7 @@ function SocketIOFileUploadServer() {
 				});
 			}
 		});
-	}
+	};
 
 	/**
 	 * Private function to save an uploaded file.
@@ -123,7 +125,7 @@ function SocketIOFileUploadServer() {
 				next(null, newBase, pathName);
 			});
 		});
-	}
+	};
 
 	var _uploadDone = function(socket){
 		return function(data){
@@ -163,10 +165,11 @@ function SocketIOFileUploadServer() {
 				file: fileInfo,
 				interrupt: !!data.interrupt
 			});
-		}
-	}
+		};
+	};
 
 	var _uploadProgress = function(socket){
+		//jshint unused:false
 		return function(data){
 			var fileInfo = files[data.id], buffer;
 			try{
@@ -186,8 +189,8 @@ function SocketIOFileUploadServer() {
 				console.log("SocketIOFileUploadServer Error (_uploadProgress):");
 				console.log(err);
 			}
-		}
-	}
+		};
+	};
 
 	/**
 	 * Private function to handle the start of a file upload.
@@ -213,7 +216,7 @@ function SocketIOFileUploadServer() {
 			// If we're not saving the file, we are ready to start receiving data now.
 			if(!self.dir){
 				socket.emit("siofu_ready", {
-					id: id,
+					id: data.id,
 					name: null
 				});
 			}else{
@@ -264,7 +267,7 @@ function SocketIOFileUploadServer() {
 					}
 				});
 			}
-		}
+		};
 	};
 
 	/**
@@ -278,7 +281,7 @@ function SocketIOFileUploadServer() {
 		socket.on("siofu_start", _uploadStart(socket));
 		socket.on("siofu_progress", _uploadProgress(socket));
 		socket.on("siofu_done", _uploadDone(socket));
-	}
+	};
 }
 util.inherits(SocketIOFileUploadServer, EventEmitter);
 
@@ -294,7 +297,9 @@ SocketIOFileUploadServer.clientPath = "/siofu/client.js";
  * @return {void}
  */
 var _serve = function(res){
-	fs.readFile(__dirname + "/client.js", function(err, data){
+	"use strict";
+
+	fs.readFile(__dirname + "/client.min.js", function(err, data){
 		if(err) throw err;
 		res.writeHead(200, {
 			"Content-Type": "text/javascript"
@@ -302,7 +307,7 @@ var _serve = function(res){
 		res.write(data);
 		res.end();
 	});
-}
+};
 
 /**
  * Transmit the static client file on a vanilla HTTP server.
@@ -310,12 +315,14 @@ var _serve = function(res){
  * @return {void}
  */
 SocketIOFileUploadServer.listen = function(app){
+	"use strict";
+
 	app.on("request", function(req, res){
 		if(req.url === SocketIOFileUploadServer.clientPath){
 			_serve(res);
 		}
-	})
-}
+	});
+};
 
 /**
  * Router to serve the static client file on the Connect middleware, including
@@ -327,12 +334,14 @@ SocketIOFileUploadServer.listen = function(app){
  * You should not need to ever call this function.
  */
 SocketIOFileUploadServer.router = function(req, res, next){
+	"use strict";
+
 	if(req.url === SocketIOFileUploadServer.clientPath){
 		_serve(res);
 	}else{
 		next();
 	}
-}
+};
 
 // Export the object.
 module.exports = SocketIOFileUploadServer;

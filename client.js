@@ -1,16 +1,16 @@
 /*
  *                      Copyright (C) 2013 Shane Carr
  *                               X11 License
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
  * to deal in the Software without restriction, including without limitation
  * the rights to use, copy, modify, merge, publish, distribute, sublicense,
  * and/or sell copies of the Software, and to permit persons to whom the
- * Software is furnished to do so, subject to the following conditions: 
+ * Software is furnished to do so, subject to the following conditions:
  * 
  * The above copyright notice and this permission notice shall be included in
- * all copies or substantial portions of the Software. 
+ * all copies or substantial portions of the Software.
  * 
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
@@ -32,7 +32,9 @@
  * @implements EventTarget
  * @param {SocketIO} socket The current Socket.IO connection.
  */
-function SocketIOFileUpload(socket){
+window.SocketIOFileUpload = function(socket){
+	"use strict";
+
 	var self = this; // avoids context issues
 
 	// Check for compatibility
@@ -41,7 +43,7 @@ function SocketIOFileUpload(socket){
 	}
 
 	// Private and Public Variables
-	var callbacks = {}, inpt, uploadedFiles = [], readyCallbacks = [];
+	var callbacks = {}, uploadedFiles = [], readyCallbacks = [];
 	self.fileInputElementId = "siofu_input";
 	self.useText = false;
 	self.serializedOctets = false;
@@ -62,7 +64,113 @@ function SocketIOFileUpload(socket){
 			}
 		}
 		return self.dispatchEvent(evnt);
-	}
+	};
+
+	/**
+	 * Private closure for the _load function.
+	 * @param  {File} file A W3C File object
+	 * @return {void}
+	 */
+	var _loadOne = function(file){
+		// Dispatch an event to listeners and stop now if they don't want
+		// this file to be uploaded.
+		var evntResult = _dispatch("start", {
+			file: file
+		});
+		if(!evntResult) return;
+
+		// Scope variables
+		var reader = new FileReader(),
+			transmitPos = 0,
+			id = uploadedFiles.length,
+			useText = self.useText,
+			newName;
+		uploadedFiles.push(file);
+
+		// Listen to the "progress" event.  Transmit parts of files
+		// as soon as they are ready.
+		// 
+		// As of version 0.2.0, the "progress" event is not yet
+		// reliable enough for production.  Please see Stack Overflow
+		// question #16713386.
+		// 
+		// To compensate, we will not process any of the "progress"
+		// events until event.loaded >= event.total.
+		reader.addEventListener("progress", function(event){
+			if(event.loaded < event.total){
+				return;
+			}
+
+			var content;
+			if(useText){
+				content = reader.result.slice(transmitPos, event.loaded);
+			}else{
+				try{
+					var uintArr = new Uint8Array(reader.result, transmitPos, event.loaded);
+
+					// Support the transmission of serialized ArrayBuffers
+					// for experimental purposes, but default to encoding the
+					// transmission in Base 64.
+					if(self.serializedOctets){
+						content = uintArr;
+					}else{
+						content = _uint8ArrayToBase64(uintArr);
+					}
+				}catch(error){
+					socket.emit("siofu_done", {
+						id: id,
+						interrupt: true
+					});
+					return;
+				}
+			}
+			socket.emit("siofu_progress", {
+				id: id,
+				start: transmitPos,
+				end: event.loaded,
+				content: content,
+				base64: self.serializedOctets ? false : true
+			});
+			transmitPos = event.loaded;
+		});
+
+		// When the file is fully loaded, tell the server.
+		reader.addEventListener("load", function(){
+			socket.emit("siofu_done", {
+				id: id
+			});
+			_dispatch("load", {
+				file: file,
+				reader: reader,
+				name: newName
+			});
+		});
+
+		// Transmit the "start" message to the server.
+		socket.emit("siofu_start", {
+			name: file.name,
+			mtime: file.lastModifiedDate,
+			encoding: useText ? "text" : "octet",
+			id: id
+		});
+
+		// To avoid a race condition, we don't want to start transmitting to the
+		// server until the server says it is ready.
+		var readyCallback;
+		if(useText){
+			readyCallback = function(_newName){
+				reader.readAsText(file);
+				newName = _newName;
+			};
+		}else{
+			readyCallback = function(_newName){
+				reader.readAsArrayBuffer(file);
+				newName = _newName;
+			};
+		}
+		readyCallbacks.push(readyCallback);
+
+	};
 
 	/**
 	 * Private function to load the file into memory using the HTML5 FileReader object
@@ -76,110 +184,9 @@ function SocketIOFileUpload(socket){
 		for(var i=0; i<files.length; i++){
 			// Evaluate each file in a closure, because we will need a new
 			// instance of FileReader for each file.
-			(function(file){
-				// Dispatch an event to listeners and stop now if they don't want
-				// this file to be uploaded.
-				var evntResult = _dispatch("start", {
-					file: file
-				});
-				if(!evntResult) return;
-
-				// Scope variables
-				var reader = new FileReader(),
-					transmitPos = 0,
-					id = uploadedFiles.length,
-					useText = self.useText,
-					newName;
-				uploadedFiles.push(file);
-
-				// Listen to the "progress" event.  Transmit parts of files
-				// as soon as they are ready.
-				// 
-				// As of version 0.2.0, the "progress" event is not yet
-				// reliable enough for production.  Please see Stack Overflow
-				// question #16713386.
-				// 
-				// To compensate, we will not process any of the "progress"
-				// events until event.loaded >= event.total.
-				reader.addEventListener("progress", function(event){
-					console.log(event);
-					if(event.loaded < event.total){
-						return;
-					}
-
-					var content;
-					if(useText){
-						content = reader.result.slice(transmitPos, event.loaded);
-					}else{
-						try{
-							var uintArr = new Uint8Array(reader.result, transmitPos, event.loaded);
-
-							// Support the transmission of serialized ArrayBuffers
-							// for experimental purposes, but default to encoding the
-							// transmission in Base 64.
-							if(self.serializedOctets){
-								content = uintArr;
-							}else{
-								content = _uint8ArrayToBase64(uintArr);
-							}
-						}catch(error){
-							console.log(error);
-							socket.emit("siofu_done", {
-								id: id,
-								interrupt: true
-							});
-							return;
-						}
-					}
-					socket.emit("siofu_progress", {
-						id: id,
-						start: transmitPos,
-						end: event.loaded,
-						content: content,
-						base64: self.serializedOctets ? false : true
-					});
-					transmitPos = event.loaded;
-				});
-
-				// When the file is fully loaded, tell the server.
-				reader.addEventListener("load", function(event){
-					socket.emit("siofu_done", {
-						id: id
-					});
-					_dispatch("load", {
-						file: file,
-						reader: reader,
-						name: newName
-					});
-				});
-
-				// Transmit the "start" message to the server.
-				socket.emit("siofu_start", {
-					name: file.name,
-					mtime: file.lastModifiedDate,
-					encoding: useText ? "text" : "octet",
-					id: id
-				});
-
-				// To avoid a race condition, we don't want to start transmitting to the
-				// server until the server says it is ready.
-				var readyCallback;
-				if(useText){
-					readyCallback = function(_newName){
-						reader.readAsText(file);
-						newName = _newName;
-					};
-				}else{
-					readyCallback = function(_newName){
-						reader.readAsArrayBuffer(file);
-						newName = _newName;
-					};
-				}
-				readyCallbacks.push(readyCallback);
-
-			})(files[i]);
+			_loadOne(files[i]);
 		}
-	}
+	};
 
 	/**
 	 * Private function to fetch an HTMLInputElement instance that can be used
@@ -196,7 +203,7 @@ function SocketIOFileUpload(socket){
 			document.body.appendChild(inpt);
 		}
 		return inpt;
-	}
+	};
 
 	/**
 	 * Private function that serves as a callback on file input.
@@ -214,7 +221,7 @@ function SocketIOFileUpload(socket){
 				_load(files);
 			}
 		}
-	}
+	};
 
 	/**
 	 * Use a file input to activate this instance of the file uploader.
@@ -225,7 +232,7 @@ function SocketIOFileUpload(socket){
 	this.listenOnInput = function(inpt){
 		if(!inpt.files) return;
 		inpt.addEventListener("change", _fileSelectCallback, false);
-	}
+	};
 
 	/**
 	 * Accept files dropped on an element and upload them using this instance
@@ -243,7 +250,7 @@ function SocketIOFileUpload(socket){
 		}, false);
 
 		div.addEventListener("drop", _fileSelectCallback);
-	}
+	};
 
 	/**
 	 * Display a dialog box for the user to select a file.  The file will then
@@ -267,7 +274,7 @@ function SocketIOFileUpload(socket){
 		evnt.initMouseEvent("click", true, true, window,
 			0, 0, 0, 0, 0, false, false, false, false, 0, null);
 		inpt.dispatchEvent(evnt);
-	}
+	};
 
 	/**
 	 * Registers an event listener.  If the callback function returns false,
@@ -280,7 +287,7 @@ function SocketIOFileUpload(socket){
 	this.addEventListener = function(eventName, callback){
 		if(!callbacks[eventName]) callbacks[eventName] = [];
 		callbacks[eventName].push(callback);
-	}
+	};
 
 	/**
 	 * Removes an event listener.
@@ -291,13 +298,13 @@ function SocketIOFileUpload(socket){
 	this.removeEventListener = function(eventName, callback){
 		if(!callbacks[eventName]) return false;
 		for(var i=0; i<callbacks[eventName].length; i++){
-			if(callbacks[eventName][i] == callback){
+			if(callbacks[eventName][i] === callback){
 				callbacks[eventName].splice(i, 1);
 				return true;
 			}
 		}
 		return false;
-	}
+	};
 
 	/**
 	 * Dispatches an event into this instance's event model.
@@ -315,7 +322,7 @@ function SocketIOFileUpload(socket){
 			}
 		}
 		return retVal;
-	}
+	};
 
 	// OTHER LIBRARIES
 	/*
@@ -358,4 +365,4 @@ function SocketIOFileUpload(socket){
 			success: data.success
 		});
 	});
-}
+};
