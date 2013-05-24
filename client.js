@@ -44,6 +44,7 @@ function SocketIOFileUpload(socket){
 	var callbacks = {}, inpt, uploadedFiles = [], readyCallbacks = [];
 	self.fileInputElementId = "siofu_input";
 	self.useText = false;
+	self.serializedOctets = false;
 
 	/**
 	 * Private method to dispatch a custom event on the instance.
@@ -93,14 +94,36 @@ function SocketIOFileUpload(socket){
 
 				// Listen to the "progress" event.  Transmit parts of files
 				// as soon as they are ready.
+				// 
+				// As of version 0.2.0, the "progress" event is not yet
+				// reliable enough for production.  Please see Stack Overflow
+				// question #16713386.
+				// 
+				// To compensate, we will not process any of the "progress"
+				// events until event.loaded >= event.total.
 				reader.addEventListener("progress", function(event){
+					console.log(event);
+					if(event.loaded < event.total){
+						return;
+					}
+
 					var content;
 					if(useText){
 						content = reader.result.slice(transmitPos, event.loaded);
 					}else{
 						try{
-							content = new Uint8Array(reader.result, transmitPos, event.loaded);
+							var uintArr = new Uint8Array(reader.result, transmitPos, event.loaded);
+
+							// Support the transmission of serialized ArrayBuffers
+							// for experimental purposes, but default to encoding the
+							// transmission in Base 64.
+							if(self.serializedOctets){
+								content = uintArr;
+							}else{
+								content = _uint8ArrayToBase64(uintArr);
+							}
 						}catch(error){
+							console.log(error);
 							socket.emit("siofu_done", {
 								id: id,
 								interrupt: true
@@ -112,7 +135,8 @@ function SocketIOFileUpload(socket){
 						id: id,
 						start: transmitPos,
 						end: event.loaded,
-						content: content
+						content: content,
+						base64: self.serializedOctets ? false : true
 					});
 					transmitPos = event.loaded;
 				});
@@ -292,6 +316,37 @@ function SocketIOFileUpload(socket){
 		}
 		return retVal;
 	}
+
+	// OTHER LIBRARIES
+	/*
+	 * base64-arraybuffer
+	 * https://github.com/niklasvh/base64-arraybuffer
+	 *
+	 * Copyright (c) 2012 Niklas von Hertzen
+	 * Licensed under the MIT license.
+	 *
+	 * Adapted for SocketIOFileUpload.
+	 */
+	var _uint8ArrayToBase64 = function(bytes) {
+		var i, len = bytes.buffer.byteLength, base64 = "",
+		chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+
+		for (i = 0; i < len; i+=3) {
+			base64 += chars[bytes[i] >> 2];
+			base64 += chars[((bytes[i] & 3) << 4) | (bytes[i + 1] >> 4)];
+			base64 += chars[((bytes[i + 1] & 15) << 2) | (bytes[i + 2] >> 6)];
+			base64 += chars[bytes[i + 2] & 63];
+		}
+
+		if ((len % 3) === 2) {
+			base64 = base64.substring(0, base64.length - 1) + "=";
+		} else if (len % 3 === 1) {
+			base64 = base64.substring(0, base64.length - 2) + "==";
+		}
+
+		return base64;
+	};
+	// END OTHER LIBRARIES
 
 	// CONSTRUCTOR: Listen to the "complete" and "ready" messages on the socket.
 	socket.on("siofu_ready", function(data){

@@ -94,9 +94,15 @@ Unfortunately, this method does not work in Firefox for security reasons.  Read 
 
 #### instance.useText = false
 
-Defaults to `false`, which transmits files as an octet array.  This is necessary for binary-type files, like images.
+Defaults to `false`, which reads files as an octet array.  This is necessary for binary-type files, like images.
 
-Set to `true` to transmit files as plain text instead.  This may save bandwidth if you expect to transmit only text files.
+Set to `true` to read and transmit files as plain text instead.  This will save bandwidth if you expect to transmit only text files.  If you choose this option, it is recommended that you perform a filter by returning `false` to a `start` event if the file does not have a desired extension.
+
+#### instance.serializeOctets = false
+
+Defaults to `false`, which transmits binary files as Base 64 data (with a 33% overhead).
+
+Set to `true` to instead transmit the data as a serialized octet array.  This will result in an overhead of over 1000% (not recommended for production applications).
 
 ### Events
 

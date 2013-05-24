@@ -168,16 +168,20 @@ function SocketIOFileUploadServer() {
 
 	var _uploadProgress = function(socket){
 		return function(data){
-			var fileInfo = files[data.id],
-				buffer = new Buffer(data.content);
-			self.emit("progress", {
-				file: fileInfo,
-				buffer: buffer
-			});
+			var fileInfo = files[data.id], buffer;
 			try{
+				if(data.base64){
+					buffer = new Buffer(data.content, "base64");
+				}else{
+					buffer = new Buffer(data.content);
+				}
 				if(fileInfo.writeStream){
 					fileInfo.writeStream.write(buffer);
 				}
+				self.emit("progress", {
+					file: fileInfo,
+					buffer: buffer
+				});
 			}catch(err){
 				console.log("SocketIOFileUploadServer Error (_uploadProgress):");
 				console.log(err);
@@ -220,7 +224,8 @@ function SocketIOFileUploadServer() {
 						_emitComplete(socket, data.id, false);
 						self.emit("error", {
 							file: fileInfo,
-							error: err
+							error: err,
+							memo: "computing file name"
 						});
 						return;
 					}
@@ -229,16 +234,34 @@ function SocketIOFileUploadServer() {
 					files[data.id].pathName = pathName;
 
 					// Create a write stream.
-					var writeStream = fs.createWriteStream(pathName, {
-						mode: self.mode
-					});
-					writeStream.on("open", function(){
-						socket.emit("siofu_ready", {
-							id: data.id,
-							name: newBase
+					try{
+						var writeStream = fs.createWriteStream(pathName, {
+							mode: self.mode
 						});
-					});
-					files[data.id].writeStream = writeStream;
+						writeStream.on("open", function(){
+							socket.emit("siofu_ready", {
+								id: data.id,
+								name: newBase
+							});
+						});
+						writeStream.on("error", function(err){
+							_emitComplete(socket, data.id, false);
+							self.emit("error", {
+								file: fileInfo,
+								error: err,
+								memo: "from within write stream"
+							});
+						});
+						files[data.id].writeStream = writeStream;
+					}catch(err){
+						_emitComplete(socket, data.id, false);
+						self.emit("error", {
+							file: fileInfo,
+							error: err,
+							memo: "creating write stream"
+						});
+						return;
+					}
 				});
 			}
 		}
