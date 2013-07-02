@@ -105,6 +105,8 @@ Defaults to `false`, which transmits binary files as Base 64 data (with a 33% ov
 
 Set to `true` to instead transmit the data as a serialized octet array.  This will result in an overhead of over 1000% (not recommended for production applications).
 
+*Note:* This option is not supported by Firefox.
+
 ### Events
 
 Instances of the `SocketIOFileUpload` object implement the [W3C `EventTarget` interface](http://www.w3.org/wiki/DOM/domcore/EventTarget).  This means that you can do:
@@ -213,7 +215,7 @@ The client has started the upload process.
 ##### Event Properties
 
 * `event.file` An object containing the file's `name`, `mtime`, `encoding`, and `id`.
-    *Note:* `encoding` is either "text" if the file is being transmitted as plain text or "octet" if it is being transmitted using an ArrayBuffer.
+    *Note:* `encoding` is either "text" if the file is being transmitted as plain text or "octet" if it is being transmitted using an ArrayBuffer.  *Note:* In the "progress", "complete", "saved", and "error" events, if you are letting the module save the file for you, the file object will contain two additional properties: `base`, the new base name given to the file, and `pathName`, the full path at which the uploaded file was saved.
 
 #### progress
 
@@ -222,7 +224,7 @@ Data has been received from the client.
 ##### Event Properties
 
 * `event.file` The same file object that would have been passed during the `start` event earlier.
-* `buffer` A buffer containing the data received from the client
+* `event.buffer` A buffer containing the data received from the client
 
 #### complete
 
@@ -231,7 +233,7 @@ The transmission of a file is complete.
 ##### Event Properties
 
 * `event.file` The same file object that would have been passed during the `start` event earlier.
-* `interrupt` true if the client said that the data was interrupted (not completely sent); false otherwise
+* `event.interrupt` true if the client said that the data was interrupted (not completely sent); false otherwise
 
 #### saved
 

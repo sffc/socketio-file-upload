@@ -87,26 +87,14 @@ window.SocketIOFileUpload = function(socket){
 			newName;
 		uploadedFiles.push(file);
 
-		// Listen to the "progress" event.  Transmit parts of files
-		// as soon as they are ready.
-		// 
-		// As of version 0.2.0, the "progress" event is not yet
-		// reliable enough for production.  Please see Stack Overflow
-		// question #16713386.
-		// 
-		// To compensate, we will not process any of the "progress"
-		// events until event.loaded >= event.total.
-		reader.addEventListener("progress", function(event){
-			if(event.loaded < event.total){
-				return;
-			}
-
+		// Private function to handle transmission of file data
+		var transmitPart = function(loaded){
 			var content;
 			if(useText){
-				content = reader.result.slice(transmitPos, event.loaded);
+				content = reader.result.slice(transmitPos, loaded);
 			}else{
 				try{
-					var uintArr = new Uint8Array(reader.result, transmitPos, event.loaded);
+					var uintArr = new Uint8Array(reader.result, transmitPos, loaded);
 
 					// Support the transmission of serialized ArrayBuffers
 					// for experimental purposes, but default to encoding the
@@ -127,15 +115,29 @@ window.SocketIOFileUpload = function(socket){
 			socket.emit("siofu_progress", {
 				id: id,
 				start: transmitPos,
-				end: event.loaded,
+				end: loaded,
 				content: content,
 				base64: !self.serializedOctets
 			});
-			transmitPos = event.loaded;
+			transmitPos = loaded;
+		};
+
+		// Listen to the "progress" event.  Transmit parts of files
+		// as soon as they are ready.
+		// 
+		// As of version 0.2.0, the "progress" event is not yet
+		// reliable enough for production.  Please see Stack Overflow
+		// question #16713386.
+		// 
+		// To compensate, we will not process any of the "progress"
+		// events until event.loaded >= event.total.
+		reader.addEventListener("progress", function(event){
+			// would call transmitPart(event.loaded) here
 		});
 
 		// When the file is fully loaded, tell the server.
-		reader.addEventListener("load", function(){
+		reader.addEventListener("load", function(event){
+			transmitPart(event.loaded);
 			socket.emit("siofu_done", {
 				id: id
 			});
