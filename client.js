@@ -67,6 +67,27 @@ window.SocketIOFileUpload = function(socket){
 	};
 
 	/**
+	 * Private method to bind an event listener.  Useful to ensure that all
+	 * events have been unbound.  Inspired by Backbone.js.
+	 */
+	var _listenedReferences = [];
+	var _listenTo = function(object, eventName, callback, bubble){
+		object.addEventListener(eventName, callback);
+		_listenedReferences.push(arguments);
+	};
+	var _stopListeningTo = function(object, eventName, callback){
+		if(object.removeEventListener){
+			object.removeEventListener(eventName, callback);
+		}
+	};
+	var _stopListening = function(){
+		for (var i = _listenedReferences.length - 1; i >= 0; i--) {
+			_stopListeningTo.removeEventListener.apply(this, _listenedReferences[i]);
+		};
+		_listenedReferences = [];
+	};
+
+	/**
 	 * Private closure for the _load function.
 	 * @param  {File} file A W3C File object
 	 * @return {void}
@@ -131,12 +152,12 @@ window.SocketIOFileUpload = function(socket){
 		// 
 		// To compensate, we will not process any of the "progress"
 		// events until event.loaded >= event.total.
-		reader.addEventListener("progress", function(event){
+		_listenTo(reader, "progress", function(event){
 			// would call transmitPart(event.loaded) here
 		});
 
 		// When the file is fully loaded, tell the server.
-		reader.addEventListener("load", function(event){
+		_listenTo(reader, "load", function(event){
 			transmitPart(event.loaded);
 			socket.emit("siofu_done", {
 				id: id
@@ -149,7 +170,7 @@ window.SocketIOFileUpload = function(socket){
 		});
 
 		// Listen for an "error" event.  Stop the transmission if one is received.
-		reader.addEventListener("error", function(){
+		_listenTo(reader, "error", function(){
 			socket.emit("siofu_done", {
 				id: id,
 				interrupt: true
@@ -157,7 +178,7 @@ window.SocketIOFileUpload = function(socket){
 		});
 
 		// Do the same for the "abort" event.
-		reader.addEventListener("abort", function(){
+		_listenTo(reader, "abort", function(){
 			socket.emit("siofu_done", {
 				id: id,
 				interrupt: true
@@ -224,6 +245,19 @@ window.SocketIOFileUpload = function(socket){
 	};
 
 	/**
+	 * Private function to remove an HTMLInputElement created by this instance
+	 * of SIOFU.
+	 * 
+	 * @return {void}
+	 */
+	var _removeInputElement = function(){
+		var inpt = document.getElementById(self.fileInputElementId);
+		if(inpt){
+			inpt.parentNode.removeChild(inpt);
+		}
+	};
+
+	/**
 	 * Private function that serves as a callback on file input.
 	 * @param  {Event} event The file input change event
 	 * @return {void}
@@ -249,7 +283,7 @@ window.SocketIOFileUpload = function(socket){
 	 */
 	this.listenOnInput = function(inpt){
 		if(!inpt.files) return;
-		inpt.addEventListener("change", _fileSelectCallback, false);
+		_listenTo(inpt, "change", _fileSelectCallback, false);
 	};
 
 	/**
@@ -263,11 +297,11 @@ window.SocketIOFileUpload = function(socket){
 	this.listenOnDrop = function(div){
 		// We need to preventDefault on the dragover event in order for the
 		// drag-and-drop operation to work.
-		div.addEventListener("dragover", function(event){
+		_listenTo(div, "dragover", function(event){
 			event.preventDefault();
 		}, false);
 
-		div.addEventListener("drop", _fileSelectCallback);
+		_listenTo(div, "drop", _fileSelectCallback);
 	};
 
 	/**
@@ -283,7 +317,7 @@ window.SocketIOFileUpload = function(socket){
 		var inpt = _getInputElement();
 
 		// Listen for the "change" event on the file input element.
-		inpt.addEventListener("change", _fileSelectCallback, false);
+		_listenTo(inpt, "change", _fileSelectCallback, false);
 
 		// Fire a click event on the input element.  Firefox does not allow
 		// programatic clicks on input elements, but the other browsers do.
@@ -292,6 +326,21 @@ window.SocketIOFileUpload = function(socket){
 		evnt.initMouseEvent("click", true, true, window,
 			0, 0, 0, 0, 0, false, false, false, false, 0, null);
 		inpt.dispatchEvent(evnt);
+	};
+
+	/**
+	 * Destroy an instance of Socket.IO file upload (i.e., unbind events and
+	 * relieve memory).
+	 *
+	 * IMPORTANT: To finish the memory relief process, set all external
+	 * references to this instance of SIOFU (including the reference used to
+	 * call this destroy function) to null.
+	 * 
+	 * @return {void}
+	 */
+	this.destroy = function(){
+		_stopListening();
+		_removeInputElement();
 	};
 
 	/**

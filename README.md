@@ -14,6 +14,7 @@ The module is released under the X11 open-source license.
     - [instance.listenOnInput(input)](#instancelistenoninputinput)
     - [instance.listenOnDrop(element)](#instancelistenondropelement)
     - [instance.prompt()](#instanceprompt)
+    - [instance.destroy()](#instancedestroy)
     - [instance.useText = false](#instanceusetext--false)
     - [instance.serializeOctets = false](#instanceserializeoctets--false)
 - [Client-Side Events](#events)
@@ -92,6 +93,13 @@ HTML:
     <button id="file_button">Upload File</button>
 
 Unfortunately, this method does not work in Firefox for security reasons.  Read the code comments for more information.
+
+#### instance.destroy()
+
+Unbinds all events and DOM elements created by this instance of SIOFU.  In order to remove the instance of SIOFU from memory, call this function *and then* set this reference (and all references) to the instance to `null`.
+
+    instance.destroy();
+    instance = null;
 
 #### instance.useText = false
 
