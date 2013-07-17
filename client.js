@@ -72,17 +72,17 @@ window.SocketIOFileUpload = function(socket){
 	 */
 	var _listenedReferences = [];
 	var _listenTo = function(object, eventName, callback, bubble){
-		object.addEventListener(eventName, callback);
+		object.addEventListener(eventName, callback, bubble);
 		_listenedReferences.push(arguments);
 	};
-	var _stopListeningTo = function(object, eventName, callback){
+	var _stopListeningTo = function(object, eventName, callback, bubble){
 		if(object.removeEventListener){
-			object.removeEventListener(eventName, callback);
+			object.removeEventListener(eventName, callback, bubble);
 		}
 	};
 	var _stopListening = function(){
 		for (var i = _listenedReferences.length - 1; i >= 0; i--) {
-			_stopListeningTo.removeEventListener.apply(this, _listenedReferences[i]);
+			_stopListeningTo.apply(this, _listenedReferences[i]);
 		};
 		_listenedReferences = [];
 	};

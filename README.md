@@ -96,8 +96,24 @@ Unfortunately, this method does not work in Firefox for security reasons.  Read 
 
 #### instance.destroy()
 
-Unbinds all events and DOM elements created by this instance of SIOFU.  In order to remove the instance of SIOFU from memory, call this function *and then* set this reference (and all references) to the instance to `null`.
+Unbinds all events and DOM elements created by this instance of SIOFU.
 
+**Important Memory Note:** In order to remove the instance of SIOFU from memory, you need to do at least three things:
+
+1. Remove all `siofu.prompt` event listeners *and then*
+2. Call this function *and then*
+3. Set this reference (and all references) to the instance to `null`
+
+For example, if you created an instance like this:
+
+    // ...
+    var instance = new SocketIOFileUpload(socket);
+    myBtn.addEventListener("click", instance.prompt, false);
+    // ...
+
+then you can remove it from memory like this:
+
+    myBtn.removeEventListener("click", instance.prompt, false);
     instance.destroy();
     instance = null;
 
