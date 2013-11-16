@@ -175,6 +175,7 @@ The server has received our file.
 
 * `event.file` an instance of a W3C File object
 * `event.success` true if the server-side implementation ran without error; false otherwise
+* `event.detail` The value of `file.clientDetail` on the server side.  Properties may be added to this object literal during any event on the server side.
 
 ## Server-Side Interface
 
