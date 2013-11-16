@@ -60,9 +60,11 @@ function SocketIOFileUploadServer() {
 	 * @return {void}
 	 */
 	var _emitComplete = function(socket, id, success){
+		var fileInfo = files[id];
 		socket.emit("siofu_complete", {
 			id: id,
-			success: success
+			success: success,
+			detail: fileInfo.clientDetail
 		});
 	};
 
@@ -204,6 +206,7 @@ function SocketIOFileUploadServer() {
 				name: data.name,
 				mtime: new Date(data.mtime),
 				encoding: data.encoding,
+				clientDetail: {},
 				id: data.id
 			};
 			files[data.id] = fileInfo;

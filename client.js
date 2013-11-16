@@ -429,6 +429,7 @@ window.SocketIOFileUpload = function(socket){
 	socket.on("siofu_complete", function(data){
 		_dispatch("complete", {
 			file: uploadedFiles[data.id],
+			detail: data.detail,
 			success: data.success
 		});
 	});
