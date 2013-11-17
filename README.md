@@ -307,6 +307,11 @@ This example assumes that you are running your application via the Connect middl
         uploader.on("saved", function(event){
             console.log(event.file);
         });
+
+        // Error handler:
+        uploader.on("error", function(event){
+            console.log("Error from uploader", event);
+        });
     });
 
 ### Client Code: public/index.html
