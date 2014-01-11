@@ -8,10 +8,10 @@
  * the rights to use, copy, modify, merge, publish, distribute, sublicense,
  * and/or sell copies of the Software, and to permit persons to whom the
  * Software is furnished to do so, subject to the following conditions:
- *
+ * 
  * The above copyright notice and this permission notice shall be included in
  * all copies or substantial portions of the Software.
- *
+ * 
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -19,7 +19,7 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
  * DEALINGS IN THE SOFTWARE.
- *
+ * 
  * Except as contained in this notice, the names of the authors or copyright
  * holders shall not be used in advertising or otherwise to promote the sale,
  * use or other dealings in this Software without prior written authorization
@@ -38,7 +38,7 @@ window.SocketIOFileUpload = function(socket){
 	var self = this; // avoids context issues
 
 	// Check for compatibility
-	if (!window.File || !window.FileReader){
+	if(!window.File || !window.FileReader){
 		throw new Error("Socket.IO File Upload: Browser Not Supported");
 	}
 
@@ -83,7 +83,7 @@ window.SocketIOFileUpload = function(socket){
 	var _stopListening = function(){
 		for (var i = _listenedReferences.length - 1; i >= 0; i--) {
 			_stopListeningTo.apply(this, _listenedReferences[i]);
-		}
+		};
 		_listenedReferences = [];
 	};
 
@@ -102,10 +102,10 @@ window.SocketIOFileUpload = function(socket){
 
 		// Scope variables
 		var reader = new FileReader(),
-				transmitPos = 0,
-				id = uploadedFiles.length,
-				useText = self.useText,
-				newName;
+			transmitPos = 0,
+			id = uploadedFiles.length,
+			useText = self.useText,
+			newName;
 		uploadedFiles.push(file);
 
 		// Private function to handle transmission of file data
@@ -145,11 +145,11 @@ window.SocketIOFileUpload = function(socket){
 
 		// Listen to the "progress" event.  Transmit parts of files
 		// as soon as they are ready.
-		//
+		// 
 		// As of version 0.2.0, the "progress" event is not yet
 		// reliable enough for production.  Please see Stack Overflow
 		// question #16713386.
-		//
+		// 
 		// To compensate, we will not process any of the "progress"
 		// events until event.loaded >= event.total.
 		_listenTo(reader, "progress", function(event){
@@ -214,7 +214,7 @@ window.SocketIOFileUpload = function(socket){
 	/**
 	 * Private function to load the file into memory using the HTML5 FileReader object
 	 * and then transmit that file through Socket.IO.
-	 *
+	 * 
 	 * @param  {FileList} files An array of files
 	 * @return {void}
 	 */
@@ -247,7 +247,7 @@ window.SocketIOFileUpload = function(socket){
 	/**
 	 * Private function to remove an HTMLInputElement created by this instance
 	 * of SIOFU.
-	 *
+	 * 
 	 * @return {void}
 	 */
 	var _removeInputElement = function(){
@@ -339,7 +339,7 @@ window.SocketIOFileUpload = function(socket){
 	 *
 	 * This method works in all current browsers except Firefox, though Opera
 	 * requires that the input element be visible.
-	 *
+	 * 
 	 * @return {void}
 	 */
 	this.prompt = function(){
@@ -353,7 +353,7 @@ window.SocketIOFileUpload = function(socket){
 		// Note that Opera requires that the element be visible when "clicked".
 		var evnt = document.createEvent("MouseEvents");
 		evnt.initMouseEvent("click", true, true, window,
-				0, 0, 0, 0, 0, false, false, false, false, 0, null);
+			0, 0, 0, 0, 0, false, false, false, false, 0, null);
 		inpt.dispatchEvent(evnt);
 	};
 
@@ -364,7 +364,7 @@ window.SocketIOFileUpload = function(socket){
 	 * IMPORTANT: To finish the memory relief process, set all external
 	 * references to this instance of SIOFU (including the reference used to
 	 * call this destroy function) to null.
-	 *
+	 * 
 	 * @return {void}
 	 */
 	this.destroy = function(){
@@ -432,7 +432,7 @@ window.SocketIOFileUpload = function(socket){
 	 */
 	var _uint8ArrayToBase64 = function(bytes) {
 		var i, len = bytes.buffer.byteLength, base64 = "",
-				chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+			chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
 		for (i = 0; i < len; i+=3) {
 			base64 += chars[bytes[i] >> 2];
