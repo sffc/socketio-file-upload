@@ -13,6 +13,8 @@ The module is released under the X11 open-source license.
 - [Client-Side Interface](#client-side-interface)
     - [instance.listenOnInput(input)](#instancelistenoninputinput)
     - [instance.listenOnDrop(element)](#instancelistenondropelement)
+    - [instance.listenOnSubmit(submitButton, input)](#instancelistenonsubmitsubmitbuttoninput)
+    - [instance.listenOnArraySubmit(submitButton, input[])](#instancelistenonarraysubmitsubmitbuttoninput)
     - [instance.prompt()](#instanceprompt)
     - [instance.destroy()](#instancedestroy)
     - [instance.useText = false](#instanceusetext--false)
@@ -79,6 +81,23 @@ HTML:
     <div id="file_drop">Drop Files Here</div>
 
 In order to work, this method requires a browser that supports the HTML5 drag-and-drop interface.
+
+#### instance.listenOnSubmit(submitButton, input)
+
+Like `instance.listenOnInput(input)`, except instead of listening for the "change" event on the input element, listen for the "click" event of a button.
+
+JavaScript:
+
+    instance.listenOnSubmit(document.getElementById("my_button"), document.getElementById("file_input"));
+
+HTML:
+
+    <label>Upload File: <input type="file" id="file_input" /></label>
+    <button id="my_button">Upload File</button>
+
+#### instance.listenOnArraySubmit(submitButton, input[])
+
+A shorthand for running `instance.listenOnSubmit(submitButton, input)` repeatedly over multiple file input elements.  Accepts an array of file input elements as the second argument.
 
 #### instance.prompt()
 
