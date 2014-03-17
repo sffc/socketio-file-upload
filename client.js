@@ -279,6 +279,18 @@ window.SocketIOFileUpload = function(socket){
 		_baseFileSelectCallback(files);
 	};
 
+
+  /**
+   * Submit files at arbitrary time
+   *
+   * @param files files received form inout
+   */
+  this.submitFile = function(files){
+    if(files){
+      _baseFileSelectCallback(files);
+    }
+  };
+
 	/**
 	 * Use a submitButton to upload files from the field given
 	 * @param {HTMLInputElement} submitButton the button that the user has to click to start the upload
