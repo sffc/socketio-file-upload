@@ -208,6 +208,22 @@ then you can remove it from memory like this:
     instance.destroy();
     instance = null;
 
+#### instance.maxFileSize = null
+
+Will cancel any attempt by the user to upload a file larger than this number of bytes.  An "error" event with code 1 will be emitted if such an attempt is made.  Defaults to a value of `null`, which does not enforce a file size limit.
+
+To tell the client when they have tried to upload a file that is too large, you can use the following code:
+
+```javascript
+siofu.addEventListener("error", function(data){
+    if (data.code === 1) {
+        alert("Don't upload such a big file");
+    }
+});
+```
+
+For maximum security, if you set a maximum file size on the client side, you should also do so on the server side.
+
 #### instance.useText = false
 
 Defaults to `false`, which reads files as an octet array.  This is necessary for binary-type files, like images.
@@ -286,6 +302,16 @@ The server has received our file.
 * `event.success` true if the server-side implementation ran without error; false otherwise
 * `event.detail` The value of `file.clientDetail` on the server side.  Properties may be added to this object literal during any event on the server side.
 
+#### error
+
+The server encountered an error.
+
+##### Event Properties
+
+* `event.file` an instance of a W3C File object
+* `event.message` the error message
+* `event.code` the error code, if available
+
 ## Server-Side API
 
 The server-side interface is contained within an NPM module.  Require it with:
@@ -331,6 +357,12 @@ The last-modified time of the file might be retained from the upload.  If this i
 
 Use these UNIX permissions when saving the uploaded file.  Defaults to `0666`.
 
+#### instance.maxFileSize = null
+
+The maximum file size, in bytes, to write to the disk.  If file data is received from the client that exceeds this bound, the data will not be written to the disk and an "error" event will be thrown.  Defaults to `null`, in which no maximum file size is enforced.
+
+Note that the other events like "progress", "complete", and "saved" will still be emitted even if the file's maximum allowed size had been exceeded.  However, in those events, `event.file.success` will be false.
+
 ### Events
 
 Instances of `SocketIOFileUploadServer` implement [Node's `EventEmitter` interface](http://nodejs.org/api/events.html#events_class_events_eventemitter).  This means that you can do:
@@ -348,7 +380,7 @@ The client has started the upload process.
 
 ##### Event Properties
 
-* `event.file` An object containing the file's `name`, `mtime`, `encoding`, `meta`, and `id`.
+* `event.file` An object containing the file's `name`, `mtime`, `encoding`, `meta`, `success`, `bytesLoaded`, and `id`.
     *Note:* `encoding` is either "text" if the file is being transmitted as plain text or "octet" if it is being transmitted using an ArrayBuffer.  *Note:* In the "progress", "complete", "saved", and "error" events, if you are letting the module save the file for you, the file object will contain two additional properties: `base`, the new base name given to the file, and `pathName`, the full path at which the uploaded file was saved.
 
 #### progress
@@ -371,7 +403,7 @@ The transmission of a file is complete.
 
 #### saved
 
-A file has been successfully saved.
+A file has been saved.  It is recommended that you check `event.file.success` to tell whether or not the file was saved without errors.
 
 ##### Event Properties
 

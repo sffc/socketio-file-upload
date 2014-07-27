@@ -51,6 +51,13 @@ function SocketIOFileUploadServer() {
 	 */
 	self.mode = "0666";
 
+	/**
+	 * Maximum file size, in bytes, when saving files.  An "error" event will
+	 * be emitted when this size is exceeded, and the data will not be written
+	 * to the disk.  null = allow any file size
+	 */
+	self.maxFileSize = null;
+
 	var files = [];
 
 	/**
@@ -144,7 +151,8 @@ function SocketIOFileUploadServer() {
 						// arguments (version 0.10.6 line 140), but the docs say that
 						// "the first argument is always reserved for an exception". 
 						if(err){
-							_emitComplete(socket, data.id, false);
+							fileInfo.success = false;
+							_emitComplete(socket, data.id, fileInfo.success);
 							throw err;
 						}
 
@@ -152,10 +160,10 @@ function SocketIOFileUploadServer() {
 						self.emit("saved", {
 							file: fileInfo
 						});
-						_emitComplete(socket, data.id, true);
+						_emitComplete(socket, data.id, fileInfo.success);
 					});
 				}else{
-					_emitComplete(socket, data.id, true);
+					_emitComplete(socket, data.id, fileInfo.success);
 				}
 			}catch(err){
 				console.log("SocketIOFileUploadServer Error (_uploadDone):");
@@ -180,9 +188,26 @@ function SocketIOFileUploadServer() {
 				}else{
 					buffer = new Buffer(data.content);
 				}
-				if(fileInfo.writeStream){
-					fileInfo.writeStream.write(buffer);
+
+				fileInfo.bytesLoaded += buffer.length;
+				if (self.maxFileSize !== null
+				 && fileInfo.bytesLoaded > self.maxFileSize) {
+				 	fileInfo.success = false;
+					socket.emit("siofu_error", {
+						id: data.id,
+						message: "Max allowed file size exceeded"
+					});
+					self.emit("error", {
+						file: fileInfo,
+						error: new Error("Max allowed file size exceeded"),
+						memo: "self-thrown from progress event"
+					});
+				} else {
+					if (fileInfo.writeStream) {
+						fileInfo.writeStream.write(buffer);
+					}
 				}
+
 				self.emit("progress", {
 					file: fileInfo,
 					buffer: buffer
@@ -208,7 +233,9 @@ function SocketIOFileUploadServer() {
 				encoding: data.encoding,
 				clientDetail: {},
 				meta: data.meta || {},
-				id: data.id
+				id: data.id,
+				bytesLoaded: 0,
+				success: true
 			};
 			files[data.id] = fileInfo;
 

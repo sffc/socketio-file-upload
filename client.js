@@ -101,6 +101,16 @@
 	 * @return {void}
 	 */
 	var _loadOne = function(file){
+		// First check for file size
+		if(file.size > self.maxFileSize){
+			_dispatch("error", {
+				file: file,
+				message: "Attempt by client to upload file exceeding the maximum file size",
+				code: 1
+			});
+			return;
+		}
+
 		// Dispatch an event to listeners and stop now if they don't want
 		// this file to be uploaded.
 		var evntResult = _dispatch("start", {
@@ -483,7 +493,7 @@
 	};
 	// END OTHER LIBRARIES
 
-	// CONSTRUCTOR: Listen to the "complete" and "ready" messages on the socket.
+	// CONSTRUCTOR: Listen to the "complete", "ready", and "error" messages on the socket.
 	socket.on("siofu_ready", function(data){
 		readyCallbacks[data.id](data.name);
 	});
@@ -492,6 +502,13 @@
 			file: uploadedFiles[data.id],
 			detail: data.detail,
 			success: data.success
+		});
+	});
+	socket.on("siofu_error", function(data){
+		_dispatch("error", {
+			file: uploadedFiles[data.id],
+			message: data.message,
+			code: 0
 		});
 	});
  }
