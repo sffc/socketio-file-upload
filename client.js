@@ -200,6 +200,7 @@
 		socket.emit("siofu_start", {
 			name: file.name,
 			mtime: file.lastModifiedDate,
+			meta: file.meta,
 			encoding: useText ? "text" : "octet",
 			id: id
 		});
@@ -269,13 +270,21 @@
 	};
 
 	var _baseFileSelectCallback = function (files) {
-		if(files.length > 0){
-			var evntResult = _dispatch("choose", {
-				files: files
-			});
-			if(evntResult){
-				_load(files);
-			}
+		if(files.length === 0) return;
+
+		// Ensure existence of meta property on each file
+		for(var i=0; i<files.length; i++){
+			files[i].meta = {};
+		}
+
+		// Dispatch the "choose" event
+		var evntResult = _dispatch("choose", {
+			files: files
+		});
+
+		// If the callback didn't return false, continue with the upload
+		if(evntResult){
+			_load(files);
 		}
 	};
 

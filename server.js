@@ -207,6 +207,7 @@ function SocketIOFileUploadServer() {
 				mtime: new Date(data.mtime),
 				encoding: data.encoding,
 				clientDetail: {},
+				meta: data.meta || {},
 				id: data.id
 			};
 			files[data.id] = fileInfo;

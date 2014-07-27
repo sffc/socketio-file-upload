@@ -348,7 +348,7 @@ The client has started the upload process.
 
 ##### Event Properties
 
-* `event.file` An object containing the file's `name`, `mtime`, `encoding`, and `id`.
+* `event.file` An object containing the file's `name`, `mtime`, `encoding`, `meta`, and `id`.
     *Note:* `encoding` is either "text" if the file is being transmitted as plain text or "octet" if it is being transmitted using an ArrayBuffer.  *Note:* In the "progress", "complete", "saved", and "error" events, if you are letting the module save the file for you, the file object will contain two additional properties: `base`, the new base name given to the file, and `pathName`, the full path at which the uploaded file was saved.
 
 #### progress
@@ -385,6 +385,52 @@ An error was encountered in the saving of the file.
 
 * `event.file` The same file object that would have been passed during the `start` event earlier.
 * `event.error` The I/O error that was encountered.
+
+## Adding Meta Data
+
+It is sometimes useful to add metadata to a file prior to uploading the file.  You may add metadata to a file on the client side by setting the `file.meta` property on the File object during the "choose" or "start" events.  You may also add metadata to a file on the server side by setting the `file.clientDetail` property on the fileInfo object during any of the server-side events.
+
+### Client to Server Meta Data
+
+To add meta data to an individual file, you can listen on the "start" event as shown below.
+
+```javascript
+// client side
+siofu.addEventListener("start", function(event){
+    event.file.meta.hello = "world";
+});
+```
+
+The data is then available on the server side as follows.
+
+```javascript
+// server side
+uploader.on("saved", function(event){
+    console.log(event.file.meta.hello);
+});
+```
+
+You can also refer back to your meta data at any time on the client side by referencing the same `event.file.meta` object literal.
+
+### Server to Client Meta Data
+
+You can add meta data on the server.  The meta data will be available to the client on the "complete" event on the client as shown below.
+
+```javascript
+// server side
+siofuServer.on("saved", function(event){
+    event.file.clientDetail.hello = "world";
+});
+```
+
+The information saved in `event.file.clientDetail` will be available in `event.detail` on the client side.
+
+```javascript
+// client side
+siofu.addEventListener("complete", function(event){
+    console.log(event.detail.hello);
+});
+```
 
 ## Example
 
