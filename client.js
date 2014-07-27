@@ -32,7 +32,14 @@
  * @implements EventTarget
  * @param {SocketIO} socket The current Socket.IO connection.
  */
-window.SocketIOFileUpload = function(socket){
+(function(scope, name, factory) {
+	if (typeof define === "function" && define.amd) {
+		define(name, factory);
+	} else {
+		scope[name] = factory();
+	}
+}(this, "SocketIOFileUpload", function(){
+ return function(socket){
 	"use strict";
 
 	var self = this; // avoids context issues
@@ -462,4 +469,5 @@ window.SocketIOFileUpload = function(socket){
 			success: data.success
 		});
 	});
-};
+ }
+}));

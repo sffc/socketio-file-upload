@@ -7,10 +7,58 @@ The intended audience are single-page web apps, but other types of Node.JS proje
 
 The module is released under the X11 open-source license.
 
-**Table of Contents**
+## Quick Start
 
-- [Installation](#installation)
-- [Client-Side Interface](#client-side-interface)
+Navigate to your project directory and run:
+
+    $ npm install socketio-file-upload
+
+In your Express app, add the router like this (if you don't use Express, read the docs below):
+
+```javascript
+var siofu = require("socketio-file-upload");
+var app = express()
+    .use(siofu.router)
+    .listen(8000);
+```
+
+On a server-side socket connection, do this:
+
+```javascript
+io.on("connection", function(socket){
+    var uploader = new siofu();
+    uploader.dir = "/path/to/save/uploads";
+    uploader.listen(socket);
+});
+```
+
+The client-side script is served at `/siofu/client.js`.  Include it like this:
+
+```html
+<script src="/siofu/client.js"></script>
+```
+
+The module also supports AMD; see the docs below for more information.
+
+Then, in your client side app, with this HTML:
+
+```html
+<input type="file" id="siofu_input" />
+```
+
+Just do this in JavaScript:
+
+```javascript
+var socket = io.connect();
+var uploader = new SocketIOFileUpload(socket);
+uploader.listenOnInput(document.getElementById("siofu_input"));
+```
+
+That's all you need to get started.  For the detailed API, continue reading below.
+
+## Table of Contents
+
+- [Client-Side API](#client-side-api)
     - [instance.listenOnInput(input)](#instancelistenoninputinput)
     - [instance.listenOnDrop(element)](#instancelistenondropelement)
     - [instance.listenOnSubmit(submitButton, input)](#instancelistenonsubmitsubmitbutton-input)
@@ -24,7 +72,7 @@ The module is released under the X11 open-source license.
     - [start](#start)
     - [load](#load)
     - [complete](#complete)
-- [Server-Side Interface](#server-side-interface)
+- [Server-Side API](#server-side-api)
     - [SocketIOFileUploadServer.listen(app)](#socketiofileuploadserverlistenapp)
     - [SocketIOFileUploadServer.router](#socketiofileuploadserverrouter)
     - [instance.listen(socket)](#instancelistensocket)
@@ -38,19 +86,38 @@ The module is released under the X11 open-source license.
     - [error](#error)
 - [Example](#example)
 
-## Installation
-
-Navigate to your project directory and run:
-
-    $ npm install socketio-file-upload
-
-## Client-Side Interface
+## Client-Side API
 
 The client-side interface is inside the `SocketIOFileUpload` namespace.  Include it with:
 
-    <script src="/siofu/client.js"></script>
+```html
+<script src="/siofu/client.js"></script>
+```
 
-When instantiating an instance of the `SocketIOFileUpload`, pass a reference to your socket.  See the Examples section.
+If you're awesome and you use AMD/RequireJS, set up your paths config like this:
+
+```javascript
+requirejs.config({
+    paths: {
+        "SocketIOFileUpload": "/siofu/client",
+        // ...
+    }
+});
+```
+
+and then include it in your app like this:
+
+```javascript
+define("app", ["SocketIOFileUpload"], function(SocketIOFileUpload){
+    // ...
+});
+```
+
+When instantiating an instance of the `SocketIOFileUpload`, pass a reference to your socket.
+
+```javascript
+var instance = new SocketIOFileUpload(socket);
+```
 
 ### Public Properties and Methods
 
@@ -196,7 +263,7 @@ The server has received our file.
 * `event.success` true if the server-side implementation ran without error; false otherwise
 * `event.detail` The value of `file.clientDetail` on the server side.  Properties may be added to this object literal during any event on the server side.
 
-## Server-Side Interface
+## Server-Side API
 
 The server-side interface is contained within an NPM module.  Require it with:
 
