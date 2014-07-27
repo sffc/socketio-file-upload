@@ -9,7 +9,6 @@
     "socket.io"
   ],
   "dependencies": {
-    "socket.io": "~1.0"
   },
   "files": [
     "client.js",

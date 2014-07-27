@@ -1,7 +1,7 @@
 Socket.IO File Upload
 =====================
 
-This module provides functionality to upload files from a browser to a Node.JS server that runs Socket.IO.  Throughout the process, if their browser supports WebSockets, the user will not submit a single HTTP request.
+This module provides functionality to upload files from a browser to a Node.JS server that runs Socket.IO.  Throughout the process, if their browser supports WebSockets, the user will not submit a single HTTP request.  Supports Socket.IO 0.9 and 1.0.
 
 The intended audience are single-page web apps, but other types of Node.JS projects may benefit from this library.
 
@@ -11,7 +11,7 @@ The module is released under the X11 open-source license.
 
 Navigate to your project directory and run:
 
-    $ npm install socketio-file-upload
+    $ npm install --save socketio-file-upload
 
 In your Express app, add the router like this (if you don't use Express, read the docs below):
 
@@ -54,7 +54,7 @@ var uploader = new SocketIOFileUpload(socket);
 uploader.listenOnInput(document.getElementById("siofu_input"));
 ```
 
-That's all you need to get started.  For the detailed API, continue reading below.
+That's all you need to get started.  For the detailed API, continue reading below.  A longer example is available at the bottom of the readme.
 
 ## Table of Contents
 
@@ -66,25 +66,32 @@ That's all you need to get started.  For the detailed API, continue reading belo
     - [instance.prompt()](#instanceprompt)
     - [instance.submitFiles(files)](#instancesubmitfilesfiles)
     - [instance.destroy()](#instancedestroy)
+    - [instance.maxFileSize = null](#instancemaxfilesize--null)
     - [instance.useText = false](#instanceusetext--false)
+    - [instance.useBuffer = false](#instanceusebuffer--false)
     - [instance.serializeOctets = false](#instanceserializeoctets--false)
 - [Client-Side Events](#events)
     - [choose](#choose)
     - [start](#start)
     - [load](#load)
     - [complete](#complete)
+    - [error](#error)
 - [Server-Side API](#server-side-api)
-    - [SocketIOFileUploadServer.listen(app)](#socketiofileuploadserverlistenapp)
-    - [SocketIOFileUploadServer.router](#socketiofileuploadserverrouter)
+    - [SocketIOFileUpload.listen(app)](#socketiofileuploadlistenapp)
+    - [SocketIOFileUpload.router](#socketiofileuploadrouter)
     - [instance.listen(socket)](#instancelistensocket)
     - [instance.dir = "/path/to/upload/directory"](#instancedir--pathtouploaddirectory)
     - [instance.mode = "0666"](#instancemode--0666)
+    - [instance.maxFileSize = null](#instancemaxfilesize--null-1)
 - [Server-Side Events](#events-1)
     - [start](#start-1)
     - [progress](#progress)
     - [complete](#complete-1)
     - [saved](#saved)
     - [error](#error)
+- [Adding Meta Data](#adding-meta-data)
+    - [Client to Server](#client-to-server-meta-data)
+    - [Server to Client](#server-to-client-meta-data)
 - [Example](#example)
 
 ## Client-Side API
@@ -316,23 +323,23 @@ The server encountered an error.
 
 The server-side interface is contained within an NPM module.  Require it with:
 
-    var SocketIOFileUploadServer = require("socketio-file-upload");
+    var SocketIOFileUpload = require("socketio-file-upload");
 
 ### Static Properties and Methods
 
-#### SocketIOFileUploadServer.listen(app)
+#### SocketIOFileUpload.listen(app)
 
 If you are using an HTTP server in Node, pass it into this method in order for the client-side JavaScript file to be served.
 
     var app = http.createServer( /* your configurations here */ ).listen(80);
-    SocketIOFileUploadServer.listen(app);
+    SocketIOFileUpload.listen(app);
 
-#### SocketIOFileUploadServer.router
+#### SocketIOFileUpload.router
 
 If you are using Connect-based middleware like Express, pass this value into the middleware.
 
     var app = express()
-                .use(SocketIOFileUploadServer.router)
+                .use(SocketIOFileUpload.router)
                 .use( /* your other middleware here */ )
                 .listen(80);
 
@@ -343,7 +350,7 @@ If you are using Connect-based middleware like Express, pass this value into the
 Listen for uploads occuring on this Socket.IO socket.
 
     io.sockets.on("connection", function(socket){
-        var uploader = new SocketIOFileUploadServer();
+        var uploader = new SocketIOFileUpload();
         uploader.listen(socket);
     });
 
@@ -365,7 +372,7 @@ Note that the other events like "progress", "complete", and "saved" will still b
 
 ### Events
 
-Instances of `SocketIOFileUploadServer` implement [Node's `EventEmitter` interface](http://nodejs.org/api/events.html#events_class_events_eventemitter).  This means that you can do:
+Instances of `SocketIOFileUpload` implement [Node's `EventEmitter` interface](http://nodejs.org/api/events.html#events_class_events_eventemitter).  This means that you can do:
 
 * `instance.on("type", callback)`
 * `instance.removeListener("type", callback)`
@@ -471,13 +478,13 @@ This example assumes that you are running your application via the Connect middl
 ### Server Code: app.js
 
     // Require the libraries:
-    var SocketIOFileUploadServer = require('socketio-file-upload'),
+    var SocketIOFileUpload = require('socketio-file-upload'),
         socketio = require('socket.io'),
         express = require('express');
 
     // Make your Express server:
     var app = express()
-        .use(SocketIOFileUploadServer.router)
+        .use(SocketIOFileUpload.router)
         .use(express.static(__dirname + "/public"))
         .listen(80);
 
@@ -485,8 +492,8 @@ This example assumes that you are running your application via the Connect middl
     var io = socketio.listen(app);
     io.sockets.on("connection", function(socket){
 
-        // Make an instance of SocketIOFileUploadServer and listen on this socket:
-        var uploader = new SocketIOFileUploadServer();
+        // Make an instance of SocketIOFileUpload and listen on this socket:
+        var uploader = new SocketIOFileUpload();
         uploader.dir = "/srv/uploads";
         uploader.listen(socket);
 
