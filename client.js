@@ -291,16 +291,16 @@
 	};
 
 
-  /**
-   * Submit files at arbitrary time
-   *
-   * @param files files received form inout
-   */
-  this.submitFile = function(files){
-    if(files){
-      _baseFileSelectCallback(files);
-    }
-  };
+	/**
+	 * Submit files at arbitrary time
+	 * @param {FileList} files Files received form the input element.
+	 * @return {void}
+	 */
+	this.submitFiles = function(files){
+		if(files){
+			_baseFileSelectCallback(files);
+		}
+	};
 
 	/**
 	 * Use a submitButton to upload files from the field given

@@ -64,6 +64,7 @@ That's all you need to get started.  For the detailed API, continue reading belo
     - [instance.listenOnSubmit(submitButton, input)](#instancelistenonsubmitsubmitbutton-input)
     - [instance.listenOnArraySubmit(submitButton, input[])](#instancelistenonarraysubmitsubmitbutton-input)
     - [instance.prompt()](#instanceprompt)
+    - [instance.submitFiles(files)](#instancesubmitfilesfiles)
     - [instance.destroy()](#instancedestroy)
     - [instance.useText = false](#instanceusetext--false)
     - [instance.serializeOctets = false](#instanceserializeoctets--false)
@@ -179,6 +180,10 @@ HTML:
     <button id="file_button">Upload File</button>
 
 Unfortunately, this method does not work in Firefox for security reasons.  Read the code comments for more information.
+
+#### instance.submitFiles(files)
+
+Call this method to manually submit a `FileList` object to be uploaded over the socket.  The argument is of type [FileList](https://developer.mozilla.org/en-US/docs/Web/API/FileList).
 
 #### instance.destroy()
 
