@@ -209,7 +209,25 @@ Defaults to `false`, which reads files as an octet array.  This is necessary for
 
 Set to `true` to read and transmit files as plain text instead.  This will save bandwidth if you expect to transmit only text files.  If you choose this option, it is recommended that you perform a filter by returning `false` to a `start` event if the file does not have a desired extension.
 
+#### instance.useBuffer = false
+
+Starting with Socket.IO 1.0, binary data may now be transmitted through the Web Socket.  You may tell SIOFU to transmit files as binary data by setting this option to `true`.  Defaults to `false`, which transmits files as base 64-encoded strings.
+
+Advantages of enabling this option:
+
+- Less overhead in the socket, since base 64 increases overhead by approximately 33%.
+- No serialization and deserialization into and out of base 64 is required on the client and server side.
+
+Disadvantages of enabling this option:
+
+- Transmitting buffer types through a WebSocket is not supported in older browsers.
+- This option is relatively new in both Socket.IO and Socket.IO File Upload and has not been rigorously tested.
+
+As you use this option, [please leave feedback](https://github.com/vote539/socketio-file-upload/issues/16).  I'm hoping to enable this feature by default in a future version of Socket.IO File Upload.
+
 #### instance.serializeOctets = false
+
+*This method is experimental, and has been deprecated in Socket.IO File Upload as of version 0.3 in favor of instance.useBuffer.*
 
 Defaults to `false`, which transmits binary files as Base 64 data (with a 33% overhead).
 

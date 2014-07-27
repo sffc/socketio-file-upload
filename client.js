@@ -54,6 +54,7 @@
 	self.fileInputElementId = "siofu_input";
 	self.useText = false;
 	self.serializedOctets = false;
+	self.useBuffer = false;
 
 	/**
 	 * Private method to dispatch a custom event on the instance.
@@ -117,7 +118,7 @@
 
 		// Private function to handle transmission of file data
 		var transmitPart = function(loaded){
-			var content;
+			var content, isBase64=false;
 			if(useText){
 				content = reader.result.slice(transmitPos, loaded);
 			}else{
@@ -129,7 +130,10 @@
 					// transmission in Base 64.
 					if(self.serializedOctets){
 						content = uintArr;
+					}else if(self.useBuffer){
+						content = uintArr.buffer;
 					}else{
+						isBase64 = true;
 						content = _uint8ArrayToBase64(uintArr);
 					}
 				}catch(error){
@@ -145,7 +149,7 @@
 				start: transmitPos,
 				end: loaded,
 				content: content,
-				base64: !self.serializedOctets
+				base64: isBase64
 			});
 			transmitPos = loaded;
 		};
