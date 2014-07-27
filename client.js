@@ -102,7 +102,7 @@
 	 */
 	var _loadOne = function(file){
 		// First check for file size
-		if(file.size > self.maxFileSize){
+		if(self.maxFileSize !== null && file.size > self.maxFileSize){
 			_dispatch("error", {
 				file: file,
 				message: "Attempt by client to upload file exceeding the maximum file size",
