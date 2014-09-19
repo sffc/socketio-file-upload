@@ -212,6 +212,7 @@
 			mtime: file.lastModifiedDate,
 			meta: file.meta,
 			encoding: useText ? "text" : "octet",
+            type: file.type,
 			id: id
 		});
 
