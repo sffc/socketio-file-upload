@@ -54,7 +54,7 @@
 	self.fileInputElementId = "siofu_input";
 	self.useText = false;
 	self.serializedOctets = false;
-	self.useBuffer = false;
+	self.useBuffer = true;
 
 	/**
 	 * Private method to dispatch a custom event on the instance.
