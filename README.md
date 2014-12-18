@@ -68,7 +68,7 @@ That's all you need to get started.  For the detailed API, continue reading belo
     - [instance.destroy()](#instancedestroy)
     - [instance.maxFileSize = null](#instancemaxfilesize--null)
     - [instance.useText = false](#instanceusetext--false)
-    - [instance.useBuffer = false](#instanceusebuffer--false)
+    - [instance.useBuffer = true](#instanceusebuffer--true)
     - [instance.serializeOctets = false](#instanceserializeoctets--false)
 - [Client-Side Events](#events)
     - [choose](#choose)
@@ -237,9 +237,9 @@ Defaults to `false`, which reads files as an octet array.  This is necessary for
 
 Set to `true` to read and transmit files as plain text instead.  This will save bandwidth if you expect to transmit only text files.  If you choose this option, it is recommended that you perform a filter by returning `false` to a `start` event if the file does not have a desired extension.
 
-#### instance.useBuffer = false
+#### instance.useBuffer = true
 
-Starting with Socket.IO 1.0, binary data may now be transmitted through the Web Socket.  You may tell SIOFU to transmit files as binary data by setting this option to `true`.  Defaults to `false`, which transmits files as base 64-encoded strings.
+Starting with Socket.IO 1.0, binary data may now be transmitted through the Web Socket.  Begining with SIOFU version 0.3.2 (December 17, 2014), this option is enabled by default.  To support older versions of Socket.IO (e.g. version 0.9.x), set this option to `false`, which transmits files as base 64-encoded strings.
 
 Advantages of enabling this option:
 
@@ -251,7 +251,7 @@ Disadvantages of enabling this option:
 - Transmitting buffer types through a WebSocket is not supported in older browsers.
 - This option is relatively new in both Socket.IO and Socket.IO File Upload and has not been rigorously tested.
 
-As you use this option, [please leave feedback](https://github.com/vote539/socketio-file-upload/issues/16).  I'm hoping to enable this feature by default in a future version of Socket.IO File Upload.
+As you use this option, [please leave feedback](https://github.com/vote539/socketio-file-upload/issues/16).
 
 #### instance.serializeOctets = false
 
