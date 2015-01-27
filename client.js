@@ -412,6 +412,7 @@
 	this.destroy = function(){
 		_stopListening();
 		_removeInputElement();
+		callbacks = {}, uploadedFiles = [], readyCallbacks = [];
 	};
 
 	/**
@@ -494,17 +495,17 @@
 	// END OTHER LIBRARIES
 
 	// CONSTRUCTOR: Listen to the "complete", "ready", and "error" messages on the socket.
-	socket.on("siofu_ready", function(data){
+	_listenTo(socket, "siofu_ready", function(data){
 		readyCallbacks[data.id](data.name);
 	});
-	socket.on("siofu_complete", function(data){
+	_listenTo(socket, "siofu_complete", function(data){
 		_dispatch("complete", {
 			file: uploadedFiles[data.id],
 			detail: data.detail,
 			success: data.success
 		});
 	});
-	socket.on("siofu_error", function(data){
+	_listenTo(socket, "siofu_error", function(data){
 		_dispatch("error", {
 			file: uploadedFiles[data.id],
 			message: data.message,
