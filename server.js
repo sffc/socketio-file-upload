@@ -193,6 +193,7 @@ function SocketIOFileUploadServer() {
           buffer = new Buffer(data.content);
         }
 
+        fileInfo.size = data.size;
         fileInfo.bytesLoaded += buffer.length;
         if (self.maxFileSize !== null
          && fileInfo.bytesLoaded > self.maxFileSize) {
@@ -240,6 +241,7 @@ function SocketIOFileUploadServer() {
         clientDetail: {},
         meta: data.meta || {},
         id: data.id,
+        size: data.size,
         bytesLoaded: 0,
         success: true
       };
@@ -338,7 +340,7 @@ SocketIOFileUploadServer.clientPath = "/siofu/client.js";
 var _serve = function (res) {
   "use strict";
 
-  fs.readFile(__dirname + "/client.min.js", function (err, data) {
+  fs.readFile(__dirname + "/client.js", function (err, data) {
     if (err) throw err;
     res.writeHead(200, {
       "Content-Type": "text/javascript"
