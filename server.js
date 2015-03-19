@@ -340,7 +340,7 @@ SocketIOFileUploadServer.clientPath = "/siofu/client.js";
 var _serve = function (res) {
   "use strict";
 
-  fs.readFile(__dirname + "/client.js", function (err, data) {
+  fs.readFile(__dirname + "/client.min.js", function (err, data) {
     if (err) throw err;
     res.writeHead(200, {
       "Content-Type": "text/javascript"
