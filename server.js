@@ -116,7 +116,9 @@ function SocketIOFileUploadServer() {
 	 */
 	var _findFileName = function(fileInfo, next){
 		// Strip dangerous characters from the file name
-		var filesafeName = fileInfo.name.replace(/[^\w\-\.]/g, "_");
+		var filesafeName = fileInfo.name
+		.replace(/[\/\?<>\\:\*\|":]|[\x00-\x1f\x80-\x9f]|^\.+$/g, "_");
+
 		var ext = path.extname(filesafeName);
 		var base = path.basename(filesafeName, ext);
 
