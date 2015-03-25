@@ -184,9 +184,9 @@
         var chunkReader = new FileReader();
         chunkReader.onload = function (e) {
           offset += chunkSize;
-          if (offset <= file.size) {
-            chunk = file.slice(offset, offset + chunkSize);
-            progress.call(file, offset - chunkSize, offset, e.target.result);
+          chunk = file.slice(offset, offset + chunkSize);
+          progress.call(file, offset - chunkSize, offset, e.target.result);
+          if (offset < file.size) {
             processChunk();
           }
           else {
