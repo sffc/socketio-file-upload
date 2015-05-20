@@ -1,17 +1,17 @@
 /*
  *                      Copyright (C) 2013 Shane Carr
  *                               X11 License
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
  * to deal in the Software without restriction, including without limitation
  * the rights to use, copy, modify, merge, publish, distribute, sublicense,
  * and/or sell copies of the Software, and to permit persons to whom the
- * Software is furnished to do so, subject to the following conditions: 
- * 
+ * Software is furnished to do so, subject to the following conditions:
+ *
  * The above copyright notice and this permission notice shall be included in
- * all copies or substantial portions of the Software. 
- * 
+ * all copies or substantial portions of the Software.
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -19,7 +19,7 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
  * DEALINGS IN THE SOFTWARE.
- * 
+ *
  * Except as contained in this notice, the names of the authors or copyright
  * holders shall not be used in advertising or otherwise to promote the sale,
  * use or other dealings in this Software without prior written authorization
@@ -66,7 +66,7 @@ function SocketIOFileUploadServer() {
 	 * @param  {boolean} success
 	 * @return {void}
 	 */
-	var _emitComplete = function(socket, id, success){
+	var _emitComplete = function (socket, id, success) {
 		var fileInfo = files[id];
 		socket.emit("siofu_complete", {
 			id: id,
@@ -88,15 +88,16 @@ function SocketIOFileUploadServer() {
 	 *                          final base name.
 	 * @return {void}
 	 */
-	var _findFileNameWorker = function(ext, base, inc, next){
+	var _findFileNameWorker = function (ext, base, inc, next) {
 		var newBase = (inc === -1) ? base : base + "-" + inc;
 		var pathName = path.join(self.dir, newBase + ext);
-		fs.exists(pathName, function(exists){
-			if(exists){
-				_findFileNameWorker(ext, base, inc+1, next);
-			}else{
-				fs.open(pathName, "w", self.mode, function(err, fd){
-					if(err){
+		fs.exists(pathName, function (exists) {
+			if (exists) {
+				_findFileNameWorker(ext, base, inc + 1, next);
+			}
+			else {
+				fs.open(pathName, "w", self.mode, function (err, fd) {
+					if (err) {
 						// Oops!  Pass an error to the callback function.
 						next(err);
 						return;
@@ -114,7 +115,7 @@ function SocketIOFileUploadServer() {
 	 *                           text content.
 	 * @return {void}
 	 */
-	var _findFileName = function(fileInfo, next){
+	var _findFileName = function (fileInfo, next) {
 		// Strip dangerous characters from the file name
 		var filesafeName = fileInfo.name
 		.replace(/[\/\?<>\\:\*\|":]|[\x00-\x1f\x80-\x9f]|^\.+$/g, "_");
@@ -123,13 +124,13 @@ function SocketIOFileUploadServer() {
 		var base = path.basename(filesafeName, ext);
 
 		// Use a recursive function to save the file under the first available filename.
-		_findFileNameWorker(ext, base, -1, function(err, newBase, pathName, fd){
-			if(err){
+		_findFileNameWorker(ext, base, -1, function (err, newBase, pathName, fd) {
+			if (err) {
 				next(err);
 				return;
 			}
-			fs.close(fd, function(err){
-				if(err){
+			fs.close(fd, function (err) {
+				if (err) {
 					next(err);
 					return;
 				}
@@ -138,21 +139,21 @@ function SocketIOFileUploadServer() {
 		});
 	};
 
-	var _uploadDone = function(socket){
-		return function(data){
+	var _uploadDone = function (socket) {
+		return function (data) {
 			var fileInfo = files[data.id];
-			try{
-				if(fileInfo.writeStream){
+			try {
+				if (fileInfo.writeStream) {
 					fileInfo.writeStream.end();
 
 					// Update the file modified time.  This doesn't seem to work; I'm not
 					// sure if it's my error or a bug in Node.
-					fs.utimes(fileInfo.pathName, new Date(), fileInfo.mtime, function(err){
+					fs.utimes(fileInfo.pathName, new Date(), fileInfo.mtime, function (err) {
 						// I'm not sure what arguments the futimes callback is passed.
 						// Based on node_file.cc, it looks like it is passed zero
 						// arguments (version 0.10.6 line 140), but the docs say that
-						// "the first argument is always reserved for an exception". 
-						if(err){
+						// "the first argument is always reserved for an exception".
+						if (err) {
 							fileInfo.success = false;
 							_emitComplete(socket, data.id, fileInfo.success);
 							throw err;
@@ -164,10 +165,12 @@ function SocketIOFileUploadServer() {
 						});
 						_emitComplete(socket, data.id, fileInfo.success);
 					});
-				}else{
+				}
+				else {
 					_emitComplete(socket, data.id, fileInfo.success);
 				}
-			}catch(err){
+			}
+			catch (err) {
 				console.log("SocketIOFileUploadServer Error (_uploadDone):");
 				console.log(err);
 			}
@@ -180,21 +183,23 @@ function SocketIOFileUploadServer() {
 		};
 	};
 
-	var _uploadProgress = function(socket){
+	var _uploadProgress = function (socket) {
 		//jshint unused:false
-		return function(data){
+		return function (data) {
 			var fileInfo = files[data.id], buffer;
-			try{
-				if(data.base64){
+			try {
+				if (data.base64) {
 					buffer = new Buffer(data.content, "base64");
-				}else{
+				}
+				else {
 					buffer = new Buffer(data.content);
 				}
 
+				fileInfo.size = data.size;
 				fileInfo.bytesLoaded += buffer.length;
 				if (self.maxFileSize !== null
 				 && fileInfo.bytesLoaded > self.maxFileSize) {
-				 	fileInfo.success = false;
+					fileInfo.success = false;
 					socket.emit("siofu_error", {
 						id: data.id,
 						message: "Max allowed file size exceeded"
@@ -204,7 +209,8 @@ function SocketIOFileUploadServer() {
 						error: new Error("Max allowed file size exceeded"),
 						memo: "self-thrown from progress event"
 					});
-				} else {
+				}
+				else {
 					if (fileInfo.writeStream) {
 						fileInfo.writeStream.write(buffer);
 					}
@@ -214,7 +220,8 @@ function SocketIOFileUploadServer() {
 					file: fileInfo,
 					buffer: buffer
 				});
-			}catch(err){
+			}
+			catch (err) {
 				console.log("SocketIOFileUploadServer Error (_uploadProgress):");
 				console.log(err);
 			}
@@ -226,8 +233,8 @@ function SocketIOFileUploadServer() {
 	 * @param  {Socket} socket The socket on which the listener is bound
 	 * @return {Function} A function compatible with a Socket.IO callback
 	 */
-	var _uploadStart = function(socket){
-		return function(data){
+	var _uploadStart = function (socket) {
+		return function (data) {
 			// Save the file information
 			var fileInfo = {
 				name: data.name,
@@ -236,6 +243,7 @@ function SocketIOFileUploadServer() {
 				clientDetail: {},
 				meta: data.meta || {},
 				id: data.id,
+				size: data.size,
 				bytesLoaded: 0,
 				success: true
 			};
@@ -247,16 +255,17 @@ function SocketIOFileUploadServer() {
 			});
 
 			// If we're not saving the file, we are ready to start receiving data now.
-			if(!self.dir){
+			if (!self.dir) {
 				socket.emit("siofu_ready", {
 					id: data.id,
 					name: null
 				});
-			}else{
+			}
+			else {
 				// Find a filename and get the handler.  Then tell the client that
 				// we're ready to start receiving data.
-				_findFileName(fileInfo, function(err, newBase, pathName){
-					if(err){
+				_findFileName(fileInfo, function (err, newBase, pathName) {
+					if (err) {
 						_emitComplete(socket, data.id, false);
 						self.emit("error", {
 							file: fileInfo,
@@ -270,17 +279,17 @@ function SocketIOFileUploadServer() {
 					files[data.id].pathName = pathName;
 
 					// Create a write stream.
-					try{
+					try {
 						var writeStream = fs.createWriteStream(pathName, {
 							mode: self.mode
 						});
-						writeStream.on("open", function(){
+						writeStream.on("open", function () {
 							socket.emit("siofu_ready", {
 								id: data.id,
 								name: newBase
 							});
 						});
-						writeStream.on("error", function(err){
+						writeStream.on("error", function (err) {
 							_emitComplete(socket, data.id, false);
 							self.emit("error", {
 								file: fileInfo,
@@ -289,7 +298,8 @@ function SocketIOFileUploadServer() {
 							});
 						});
 						files[data.id].writeStream = writeStream;
-					}catch(err){
+					}
+					catch (err) {
 						_emitComplete(socket, data.id, false);
 						self.emit("error", {
 							file: fileInfo,
@@ -306,11 +316,11 @@ function SocketIOFileUploadServer() {
 	/**
 	 * Public method.  Listen to a Socket.IO socket for a file upload event
 	 * emitted from the client-side library.
-	 * 
+	 *
 	 * @param  {Socket} socket The socket on which to listen
 	 * @return {void}
 	 */
-	this.listen = function(socket) {
+	this.listen = function (socket) {
 		socket.on("siofu_start", _uploadStart(socket));
 		socket.on("siofu_progress", _uploadProgress(socket));
 		socket.on("siofu_done", _uploadDone(socket));
@@ -329,11 +339,11 @@ SocketIOFileUploadServer.clientPath = "/siofu/client.js";
  * @param  {ServerResponse} res The server response
  * @return {void}
  */
-var _serve = function(res){
+var _serve = function (res) {
 	"use strict";
 
-	fs.readFile(__dirname + "/client.min.js", function(err, data){
-		if(err) throw err;
+	fs.readFile(__dirname + "/client.min.js", function (err, data) {
+		if (err) throw err;
 		res.writeHead(200, {
 			"Content-Type": "text/javascript"
 		});
@@ -347,11 +357,11 @@ var _serve = function(res){
  * @param  {HTTPServer} app Your HTTP server
  * @return {void}
  */
-SocketIOFileUploadServer.listen = function(app){
+SocketIOFileUploadServer.listen = function (app) {
 	"use strict";
 
-	app.on("request", function(req, res){
-		if(req.url === SocketIOFileUploadServer.clientPath){
+	app.on("request", function (req, res) {
+		if (req.url === SocketIOFileUploadServer.clientPath) {
 			_serve(res);
 		}
 	});
@@ -366,12 +376,13 @@ SocketIOFileUploadServer.listen = function(app){
  *
  * You should not need to ever call this function.
  */
-SocketIOFileUploadServer.router = function(req, res, next){
+SocketIOFileUploadServer.router = function (req, res, next) {
 	"use strict";
 
-	if(req.url === SocketIOFileUploadServer.clientPath){
+	if (req.url === SocketIOFileUploadServer.clientPath) {
 		_serve(res);
-	}else{
+	}
+	else {
 		next();
 	}
 };
