@@ -195,6 +195,7 @@ function SocketIOFileUploadServer() {
 					buffer = new Buffer(data.content);
 				}
 
+				fileInfo.size = data.size;
 				fileInfo.bytesLoaded += buffer.length;
 				if (self.maxFileSize !== null
 				 && fileInfo.bytesLoaded > self.maxFileSize) {
@@ -242,6 +243,7 @@ function SocketIOFileUploadServer() {
 				clientDetail: {},
 				meta: data.meta || {},
 				id: data.id,
+				size: data.size,
 				bytesLoaded: 0,
 				success: true
 			};

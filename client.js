@@ -62,6 +62,7 @@
 	self.useText = false;
 	self.serializedOctets = false;
 	self.useBuffer = true;
+	self.chunkSize = 1024 * 100; // 100kb default chunk size
 
 	/**
 	 * Private method to dispatch a custom event on the instance.
@@ -127,25 +128,18 @@
 
 		// Scope variables
 		var reader = new FileReader(),
-			transmitPos = 0,
 			id = uploadedFiles.length,
 			useText = self.useText,
 			newName;
 		uploadedFiles.push(file);
 
 		// Private function to handle transmission of file data
-		var transmitPart = function(loaded){
-			var content, isBase64=false;
-			if(useText){
-				content = reader.result.slice(transmitPos, loaded);
-			}else{
-				try{
-					var uintArr = new Uint8Array(reader.result, transmitPos, loaded);
-
-					// Support the transmission of serialized ArrayBuffers
-					// for experimental purposes, but default to encoding the
-					// transmission in Base 64.
-					if(self.serializedOctets){
+		var transmitPart = function (start, end, content) {
+			var isBase64 = false;
+			if (!useText) {
+				try {
+					var uintArr = new Uint8Array(content);
+					if (self.serializedOctets) {
 						content = uintArr;
 					}
 					else if (self.useBuffer) {
@@ -166,29 +160,72 @@
 			}
 			socket.emit("siofu_progress", {
 				id: id,
-				start: transmitPos,
-				end: loaded,
+				size: file.size,
+				start: start,
+				end: end,
 				content: content,
 				base64: isBase64
 			});
-			transmitPos = loaded;
-		};
+		}
+
+		// Callback when tranmission is complete.
+		var transmitDone = function () {
+			socket.emit("siofu_done", {
+				id: id
+			});
+		}
 
 		// Listen to the "progress" event.  Transmit parts of files
 		// as soon as they are ready.
-		// 
-		// As of version 0.2.0, the "progress" event is not yet
-		// reliable enough for production.  Please see Stack Overflow
-		// question #16713386.
-		// 
-		// To compensate, we will not process any of the "progress"
-		// events until event.loaded >= event.total.
-		_listenTo(reader, "progress", function(event){
-			// would call transmitPart(event.loaded) here
-		});
+		var processFile = function (file, chunkSize, progress, done) {
+			if (chunkSize > file.size) chunkSize = file.size;
+			var offset = 0, chunk = file.slice(offset, offset + chunkSize);
+			var processChunk = function() {
+				var chunkReader = new FileReader();
+				chunkReader.onload = function (e) {
+					offset += chunkSize;
+					chunk = file.slice(offset, offset + chunkSize);
+					progress.call(file, offset - chunkSize, offset, e.target.result);
+					if (offset < file.size) {
+						processChunk();
+					}
+					else {
+						done.call(file);
+					}
+				}
+				if (useText) {
+					chunkReader.readAsText(chunk);
+				}
+				else {
+					chunkReader.readAsArrayBuffer(chunk);
+				}
+
+				// Listen for "error" or "abort" events.
+				// Stop the transmission if one is received.
+				// [MF 16/03/2015] These have been copied from the main FileReader
+				// before the chunking was introduced, but may cause horrid memory leaks
+				// as I don't think they will get cleared up, so this will
+				// probably need reviewing.
+				_listenTo(chunkReader, "error", function () {
+					socket.emit("siofu_done", {
+						id: id,
+						interrupt: true
+					});
+				});
+				_listenTo(chunkReader, "abort", function () {
+					socket.emit("siofu_done", {
+						id: id,
+						interrupt: true
+					});
+				});
+			};
+
+			processChunk();
+		}
 
 		// When the file is fully loaded, tell the server.
-		_listenTo(reader, "load", function(event){
+		// [MF 16/03/2015] Possibly redundant.
+		_listenTo(reader, "load", function (event) {
 			transmitPart(event.loaded);
 			socket.emit("siofu_done", {
 				id: id
@@ -201,7 +238,8 @@
 		});
 
 		// Listen for an "error" event.  Stop the transmission if one is received.
-		_listenTo(reader, "error", function(){
+		// [MF 16/03/2015] Possibly redundant.
+		_listenTo(reader, "error", function () {
 			socket.emit("siofu_done", {
 				id: id,
 				interrupt: true
@@ -209,7 +247,8 @@
 		});
 
 		// Do the same for the "abort" event.
-		_listenTo(reader, "abort", function(){
+		// [MF 16/03/2015] Possibly redundant.
+		_listenTo(reader, "abort", function () {
 			socket.emit("siofu_done", {
 				id: id,
 				interrupt: true
@@ -221,26 +260,23 @@
 			name: file.name,
 			mtime: file.lastModifiedDate,
 			meta: file.meta,
+			size: file.size,
 			encoding: useText ? "text" : "octet",
 			id: id
 		});
 
 		// To avoid a race condition, we don't want to start transmitting to the
 		// server until the server says it is ready.
-		var readyCallback;
-		if(useText){
-			readyCallback = function(_newName){
-				reader.readAsText(file);
+		var readyCallback = function (_newName) {
+			if (reader.readyState === 0) {
+				processFile(file, self.chunkSize, transmitPart, transmitDone);
 				newName = _newName;
-			};
-		}else{
-			readyCallback = function(_newName){
-				reader.readAsArrayBuffer(file);
-				newName = _newName;
-			};
-		}
+			}
+			else {
+				console.log('Warning: FileReader is currently reading data.');
+			}
+		};
 		readyCallbacks.push(readyCallback);
-
 	};
 
 	/**
