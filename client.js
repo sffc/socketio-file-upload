@@ -1,5 +1,5 @@
 /*
- *                      Copyright (C) 2013 Shane Carr
+ *                 Copyright (C) 2015 Shane Carr and others
  *                               X11 License
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
@@ -24,12 +24,6 @@
  * holders shall not be used in advertising or otherwise to promote the sale,
  * use or other dealings in this Software without prior written authorization
  * from the authors or copyright holders.
- */
-
-/* Socket IO File Upload Client-Side Library
- *   Copyright (C) 2013 Shane Carr
- *   Released under the X11 License
- * For more information, visit: https://github.com/vote539/socketio-file-upload
  */
 
 /**
