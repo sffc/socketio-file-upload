@@ -557,6 +557,12 @@ This example assumes that you are running your application via the Connect middl
         siofu.listenOnInput(document.getElementById("upload_input"));
         siofu.listenOnDrop(document.getElementById("file_drop"));
 
+        // Do something on upload progress:
+        siofu.addEventListener("progress", function(event){
+            var percent = event.bytesLoaded / event.file.size * 100;
+            console.log("File is", percent.toFixed(2), "percent loaded");
+        });
+
         // Do something when a file is uploaded:
         siofu.addEventListener("complete", function(event){
             console.log(event.success);
@@ -580,5 +586,5 @@ This example assumes that you are running your application via the Connect middl
 
 I hope to one day see this project implement the following features.
 
-* Upload Progress.  There are examples of this on the net, so it should be feasible to implement.
+* Better callback for upload progress.  Have the server confirm receipt of a chunk before firing the "progress" event on the client side.
 * Allow input of a file URL rather than uploading a file from your computer or mobile device.
