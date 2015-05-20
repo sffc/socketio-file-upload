@@ -69,7 +69,7 @@ That's all you need to get started.  For the detailed API, continue reading belo
     - [instance.submitFiles(files)](#instancesubmitfilesfiles)
     - [instance.destroy()](#instancedestroy)
     - [instance.maxFileSize = null](#instancemaxfilesize--null)
-    - [instance.chunkSize = 100 KiB](#instancechunksize--100kib)
+    - [instance.chunkSize = 100 KiB](#instancechunksize--100-kib)
     - [instance.useText = false](#instanceusetext--false)
     - [instance.useBuffer = true](#instanceusebuffer--true)
     - [instance.serializeOctets = false](#instanceserializeoctets--false)
