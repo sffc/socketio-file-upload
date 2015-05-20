@@ -130,8 +130,13 @@
 		var reader = new FileReader(),
 			id = uploadedFiles.length,
 			useText = self.useText,
+			offset = 0,
 			newName;
 		uploadedFiles.push(file);
+
+		// Calculate chunk size
+		var chunkSize = self.chunkSize;
+		if (chunkSize >= file.size || chunkSize <= 0) chunkSize = file.size;
 
 		// Private function to handle transmission of file data
 		var transmitPart = function (start, end, content) {
@@ -139,6 +144,10 @@
 			if (!useText) {
 				try {
 					var uintArr = new Uint8Array(content);
+
+					// Support the transmission of serialized ArrayBuffers
+					// for experimental purposes, but default to encoding the
+					// transmission in Base 64.
 					if (self.serializedOctets) {
 						content = uintArr;
 					}
@@ -175,84 +184,69 @@
 			});
 		}
 
-		// Listen to the "progress" event.  Transmit parts of files
-		// as soon as they are ready.
-		var processFile = function (file, chunkSize, progress, done) {
-			if (chunkSize > file.size) chunkSize = file.size;
-			var offset = 0, chunk = file.slice(offset, offset + chunkSize);
-			var processChunk = function() {
-				var chunkReader = new FileReader();
-				chunkReader.onload = function (e) {
-					offset += chunkSize;
-					chunk = file.slice(offset, offset + chunkSize);
-					progress.call(file, offset - chunkSize, offset, e.target.result);
-					if (offset < file.size) {
-						processChunk();
-					}
-					else {
-						done.call(file);
-					}
-				}
-				if (useText) {
-					chunkReader.readAsText(chunk);
-				}
-				else {
-					chunkReader.readAsArrayBuffer(chunk);
-				}
-
-				// Listen for "error" or "abort" events.
-				// Stop the transmission if one is received.
-				// [MF 16/03/2015] These have been copied from the main FileReader
-				// before the chunking was introduced, but may cause horrid memory leaks
-				// as I don't think they will get cleared up, so this will
-				// probably need reviewing.
-				_listenTo(chunkReader, "error", function () {
-					socket.emit("siofu_done", {
-						id: id,
-						interrupt: true
-					});
-				});
-				_listenTo(chunkReader, "abort", function () {
-					socket.emit("siofu_done", {
-						id: id,
-						interrupt: true
-					});
-				});
-			};
-
-			processChunk();
+		// Load a "chunk" of the file from offset to offset+chunkSize.
+		// 
+		// Note that FileReader has its own "progress" event.  However,
+		// it has not proven to be reliable enough for production. See
+		// Stack Overflow question #16713386.
+		// 
+		// To compensate, we will manually load the file in chunks of a
+		// size specified by the user in the uploader.chunkSize property.
+		var processChunk = function () {
+			var chunk = file.slice(offset, Math.min(offset+chunkSize, file.size));
+			if (useText) {
+				reader.readAsText(chunk);
+			}
+			else {
+				reader.readAsArrayBuffer(chunk);
+			}
 		}
 
-		// When the file is fully loaded, tell the server.
-		// [MF 16/03/2015] Possibly redundant.
-		_listenTo(reader, "load", function (event) {
-			transmitPart(event.loaded);
-			socket.emit("siofu_done", {
-				id: id
-			});
-			_dispatch("load", {
+		// Callback for when the reader has completed a load event.
+		var loadCb = function (event) {
+			// Transmit the newly loaded data to the server and emit a client event
+			var bytesLoaded = Math.min(offset+chunkSize, file.size);
+			transmitPart(offset, bytesLoaded, event.target.result);
+			_dispatch("progress", {
 				file: file,
-				reader: reader,
+				bytesLoaded: bytesLoaded,
 				name: newName
 			});
-		});
+
+			// Get ready to send the next chunk
+			offset += chunkSize;
+			if (offset < file.size) {
+				// Read in the next chunk
+				processChunk();
+			}
+			else {
+				// All done!
+				transmitDone();
+				_dispatch("load", {
+					file: file,
+					reader: reader,
+					name: newName
+				});
+			}
+		};
+		_listenTo(reader, "load", loadCb);
 
 		// Listen for an "error" event.  Stop the transmission if one is received.
-		// [MF 16/03/2015] Possibly redundant.
 		_listenTo(reader, "error", function () {
 			socket.emit("siofu_done", {
 				id: id,
 				interrupt: true
 			});
+			_stopListeningTo(reader, "load", loadCb);
 		});
 
 		// Do the same for the "abort" event.
-		// [MF 16/03/2015] Possibly redundant.
 		_listenTo(reader, "abort", function () {
 			socket.emit("siofu_done", {
 				id: id,
 				interrupt: true
 			});
+			_stopListeningTo(reader, "load", loadCb);
 		});
 
 		// Transmit the "start" message to the server.
@@ -268,13 +262,8 @@
 		// To avoid a race condition, we don't want to start transmitting to the
 		// server until the server says it is ready.
 		var readyCallback = function (_newName) {
-			if (reader.readyState === 0) {
-				processFile(file, self.chunkSize, transmitPart, transmitDone);
-				newName = _newName;
-			}
-			else {
-				console.log('Warning: FileReader is currently reading data.');
-			}
+			newName = _newName;
+			processChunk();
 		};
 		readyCallbacks.push(readyCallback);
 	};
@@ -369,7 +358,8 @@
 
 	/**
 	 * Use a submitButton to upload files from the field given
-	 * @param {HTMLInputElement} submitButton the button that the user has to click to start the upload
+	 * @param {HTMLInputElement} submitButton the button that the user has to
+	 *                           click to start the upload
 	 * @param {HTMLInputElement} input the field with the data to upload
 	 *
 	 * @return {void}
@@ -383,7 +373,8 @@
 
 	/**
 	 * Use a submitButton to upload files from the field given
-	 * @param {HTMLInputElement} submitButton the button that the user has to click to start the upload
+	 * @param {HTMLInputElement} submitButton the button that the user has to
+	 *                           click to start the upload
 	 * @param {Array} array an array of fields with the files to upload
 	 *
 	 * @return {void}
@@ -543,7 +534,8 @@
 	};
 	// END OTHER LIBRARIES
 
-	// CONSTRUCTOR: Listen to the "complete", "ready", and "error" messages on the socket.
+	// CONSTRUCTOR: Listen to the "complete", "ready", and "error" messages
+	// on the socket.
 	_listenTo(socket, "siofu_ready", function (data) {
 		readyCallbacks[data.id](data.name);
 	});

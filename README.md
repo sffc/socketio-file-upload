@@ -5,6 +5,8 @@ This module provides functionality to upload files from a browser to a Node.JS s
 
 The intended audience are single-page web apps, but other types of Node.JS projects may benefit from this library.
 
+Since version 0.4, this module also supports monitoring file upload progress.
+
 The module is released under the X11 open-source license.
 
 ## Quick Start
@@ -67,12 +69,14 @@ That's all you need to get started.  For the detailed API, continue reading belo
     - [instance.submitFiles(files)](#instancesubmitfilesfiles)
     - [instance.destroy()](#instancedestroy)
     - [instance.maxFileSize = null](#instancemaxfilesize--null)
+    - [instance.chunkSize = 100 KiB](#instancechunksize--100kib)
     - [instance.useText = false](#instanceusetext--false)
     - [instance.useBuffer = true](#instanceusebuffer--true)
     - [instance.serializeOctets = false](#instanceserializeoctets--false)
 - [Client-Side Events](#events)
     - [choose](#choose)
     - [start](#start)
+    - [progress](#progress)
     - [load](#load)
     - [complete](#complete)
     - [error](#error)
@@ -85,7 +89,7 @@ That's all you need to get started.  For the detailed API, continue reading belo
     - [instance.maxFileSize = null](#instancemaxfilesize--null-1)
 - [Server-Side Events](#events-1)
     - [start](#start-1)
-    - [progress](#progress)
+    - [progress](#progress-1)
     - [complete](#complete-1)
     - [saved](#saved)
     - [error](#error)
@@ -231,6 +235,16 @@ siofu.addEventListener("error", function(data){
 
 For maximum security, if you set a maximum file size on the client side, you should also do so on the server side.
 
+#### instance.chunkSize = 100 KiB
+
+The size of the file "chunks" to be loaded at a time.  This enables you to monitor the upload progress with a progress bar and the "progress" event (see below).
+
+The default value is 100 KiB, which is specified as
+
+`instance.chunkSize = 1024 * 100;`
+
+Setting this parameter to 0 disables chunking of files.
+
 #### instance.useText = false
 
 Defaults to `false`, which reads files as an octet array.  This is necessary for binary-type files, like images.
@@ -288,6 +302,20 @@ This event is fired immediately following the `choose` event, but once per file.
 ##### Event Properties
 
 * `event.file` an instance of a W3C File object
+
+#### progress
+
+Part of the file has been loaded from the file system and ready to be transmitted via Socket.IO.  This event can be used to make an upload progress bar.
+
+You can compute the percent progress via `event.bytesLoaded / event.file.size`
+
+**TODO:** A better implementation would be for the server to confirm receipt of a chunk before emitting this event.  Feel free to submit a PR if the current implementation does not fit your needs.
+
+##### Event Properties
+
+* `event.file` an instance of a W3C File object
+* `event.bytesLoaded` the number of bytes that have been loaded into memory
+* `event.name` the filename to which the server saved the file
 
 #### load
 
