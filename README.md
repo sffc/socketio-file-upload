@@ -582,9 +582,13 @@ This example assumes that you are running your application via the Connect middl
     </body>
     </html>
 
-## Future Inovations
+## Future Work
 
-I hope to one day see this project implement the following features.
+First, I'm aware that this module currently lacks unit tests (mocha, etc).  This is a problem that should be solved.  I'm willing to accept PRs that add unit tests, or else one of these days when I have extra time I'll see if I can add them myself.
 
-* Better callback for upload progress.  Have the server confirm receipt of a chunk before firing the "progress" event on the client side.
-* Allow input of a file URL rather than uploading a file from your computer or mobile device.
+In addition, the following features would be useful for the module to support.
+
+1. Allow input of a file URL rather than uploading a file from your computer or mobile device.
+2. Have the server confirm receipt of a chunk before firing the "progress" event on the client side.
+
+As always PRs are welcome.
