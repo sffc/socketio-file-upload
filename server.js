@@ -156,7 +156,8 @@ function SocketIOFileUploadServer() {
 						if (err) {
 							fileInfo.success = false;
 							_emitComplete(socket, data.id, fileInfo.success);
-							throw err;
+							console.log("SocketIOFileUploadServer Error (_uploadDone fs.utimes):");
+							console.log(err);
 						}
 
 						// Emit the "saved" event to the server-side listeners
