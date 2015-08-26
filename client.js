@@ -313,7 +313,7 @@
 
 		// Ensure existence of meta property on each file
 		for (var i = 0; i < files.length; i++) {
-			files[i].meta = {};
+			if(!files[i].meta) files[i].meta = {};
 		}
 
 		// Dispatch the "choose" event
