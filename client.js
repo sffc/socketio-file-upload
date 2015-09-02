@@ -129,6 +129,7 @@
 			useText = self.useText,
 			offset = 0,
 			newName;
+		if (reader._realReader) reader = reader._realReader; // Support Android Crosswalk
 		uploadedFiles.push(file);
 
 		// Calculate chunk size
