@@ -40,6 +40,12 @@ The client-side script is served at `/siofu/client.js`.  Include it like this:
 <script src="/siofu/client.js"></script>
 ```
 
+If you use browserify, just require it like this:
+
+```javascript
+var SocketIOFileUpload = require('socketio-file-upload');
+```
+
 The module also supports AMD; see the docs below for more information.
 
 Then, in your client side app, with this HTML:
