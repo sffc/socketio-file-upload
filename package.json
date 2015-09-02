@@ -17,6 +17,7 @@
     "README.md"
   ],
   "main": "server.js",
+  "browser": "client.js",
   "repository": {
     "type": "git",
     "url": "git://github.com/vote539/socketio-file-upload.git"
