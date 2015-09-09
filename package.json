@@ -8,7 +8,10 @@
     "socket",
     "socket.io"
   ],
-  "dependencies": {
+  "dependencies": {},
+  "devDependencies": {
+    "concat-stream": "^1.5.0",
+    "tape": "^4.2.0"
   },
   "files": [
     "client.js",
@@ -18,6 +21,9 @@
   ],
   "main": "server.js",
   "browser": "client.js",
+  "scripts": {
+    "test": "tape test/*.js"
+  },
   "repository": {
     "type": "git",
     "url": "git://github.com/vote539/socketio-file-upload.git"
