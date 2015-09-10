@@ -10,7 +10,12 @@
   ],
   "dependencies": {},
   "devDependencies": {
+    "browserify": "^11.0.1",
+    "chrome-location": "^1.2.1",
     "concat-stream": "^1.5.0",
+    "ecstatic": "^0.8.0",
+    "socket.io": "^1.3.6",
+    "socket.io-client": "^1.3.6",
     "tape": "^4.2.0"
   },
   "files": [
@@ -22,6 +27,7 @@
   "main": "server.js",
   "browser": "client.js",
   "scripts": {
+    "pretest": "browserify test/serve/browser-file-transfer.js -o test/serve/bundle.js",
     "test": "tape test/*.js"
   },
   "repository": {

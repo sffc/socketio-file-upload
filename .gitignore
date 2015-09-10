@@ -2,3 +2,4 @@ node_modules/
 public_html/
 uploads/
 app.js
+test/serve/bundle.js
