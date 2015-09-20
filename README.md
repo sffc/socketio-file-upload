@@ -145,11 +145,15 @@ When the user selects a file or files in the specified HTML Input Element, the l
 
 JavaScript:
 
-    instance.listenOnInput(document.getElementById("file_input"));
+```javascript
+instance.listenOnInput(document.getElementById("file_input"));
+```
 
 HTML:
 
-    <label>Upload File: <input type="file" id="file_input" /></label>
+```html
+<label>Upload File: <input type="file" id="file_input" /></label>
+```
 
 All browsers tested support this method.
 
@@ -159,11 +163,15 @@ When the user drags and drops a file or files onto the specified HTML Element, t
 
 JavaScript:
 
-    instance.listenOnDrop(document.getElementById("file_drop"));
+```javascript
+instance.listenOnDrop(document.getElementById("file_drop"));
+```
 
 HTML:
 
-    <div id="file_drop">Drop Files Here</div>
+```html
+<div id="file_drop">Drop Files Here</div>
+```
 
 In order to work, this method requires a browser that supports the HTML5 drag-and-drop interface.
 
@@ -173,12 +181,16 @@ Like `instance.listenOnInput(input)`, except instead of listening for the "chang
 
 JavaScript:
 
-    instance.listenOnSubmit(document.getElementById("my_button"), document.getElementById("file_input"));
+```javascript
+instance.listenOnSubmit(document.getElementById("my_button"), document.getElementById("file_input"));
+```
 
 HTML:
 
-    <label>Upload File: <input type="file" id="file_input" /></label>
-    <button id="my_button">Upload File</button>
+```html
+<label>Upload File: <input type="file" id="file_input" /></label>
+<button id="my_button">Upload File</button>
+```
 
 #### instance.listenOnArraySubmit(submitButton, input[])
 
@@ -190,11 +202,15 @@ When this method is called, the user will be prompted to choose a file to upload
 
 JavaScript:
 
-    document.getElementById("file_button").addEventListener("click", instance.prompt, false);
+```javascript
+document.getElementById("file_button").addEventListener("click", instance.prompt, false);
+```
 
 HTML:
 
-    <button id="file_button">Upload File</button>
+```html
+<button id="file_button">Upload File</button>
+```
 
 Unfortunately, this method does not work in Firefox for security reasons.  Read the code comments for more information.
 
@@ -214,16 +230,20 @@ Unbinds all events and DOM elements created by this instance of SIOFU.
 
 For example, if you created an instance like this:
 
-    // ...
-    var instance = new SocketIOFileUpload(socket);
-    myBtn.addEventListener("click", instance.prompt, false);
-    // ...
+```javascript
+// ...
+var instance = new SocketIOFileUpload(socket);
+myBtn.addEventListener("click", instance.prompt, false);
+// ...
+```
 
 then you can remove it from memory like this:
 
-    myBtn.removeEventListener("click", instance.prompt, false);
-    instance.destroy();
-    instance = null;
+```javascript
+myBtn.removeEventListener("click", instance.prompt, false);
+instance.destroy();
+instance = null;
+```
 
 #### instance.maxFileSize = null
 
@@ -357,7 +377,9 @@ The server encountered an error.
 
 The server-side interface is contained within an NPM module.  Require it with:
 
-    var SocketIOFileUpload = require("socketio-file-upload");
+```javascript
+var SocketIOFileUpload = require("socketio-file-upload");
+```
 
 ### Static Properties and Methods
 
@@ -365,17 +387,21 @@ The server-side interface is contained within an NPM module.  Require it with:
 
 If you are using an HTTP server in Node, pass it into this method in order for the client-side JavaScript file to be served.
 
-    var app = http.createServer( /* your configurations here */ ).listen(80);
-    SocketIOFileUpload.listen(app);
+```javascript
+var app = http.createServer( /* your configurations here */ ).listen(80);
+SocketIOFileUpload.listen(app);
+```
 
 #### SocketIOFileUpload.router
 
 If you are using Connect-based middleware like Express, pass this value into the middleware.
 
-    var app = express()
-                .use(SocketIOFileUpload.router)
-                .use( /* your other middleware here */ )
-                .listen(80);
+```javascript
+var app = express()
+            .use(SocketIOFileUpload.router)
+            .use( /* your other middleware here */ )
+            .listen(80);
+```
 
 ### Public Properties and Methods
 
@@ -383,14 +409,16 @@ If you are using Connect-based middleware like Express, pass this value into the
 
 Listen for uploads occuring on this Socket.IO socket.
 
-    io.sockets.on("connection", function(socket){
-        var uploader = new SocketIOFileUpload();
-        uploader.listen(socket);
-    });
+```javascript
+io.sockets.on("connection", function(socket){
+    var uploader = new SocketIOFileUpload();
+    uploader.listen(socket);
+});
+```
 
 #### instance.dir = "/path/to/upload/directory"
 
-If specified, the module will attempt to save uploaded files in this directory.  The module will inteligently suffix numbers to the uploaded filenames until name conflicts are resolved.  It will also sanitize the filename to help prevent attacks.
+If specified, the module will attempt to save uploaded files in this directory.  The module will intelligently suffix numbers to the uploaded filenames until name conflicts are resolved.  It will also sanitize the filename to help prevent attacks.
 
 The last-modified time of the file might be retained from the upload.  If this is of high importance to you, I recommend performing some tests, and if it does not meet your needs, submit an issue or a pull request.
 
@@ -511,82 +539,86 @@ This example assumes that you are running your application via the Connect middl
 
 ### Server Code: app.js
 
-    // Require the libraries:
-    var SocketIOFileUpload = require('socketio-file-upload'),
-        socketio = require('socket.io'),
-        express = require('express');
+```javascript
+// Require the libraries:
+var SocketIOFileUpload = require('socketio-file-upload'),
+    socketio = require('socket.io'),
+    express = require('express');
 
-    // Make your Express server:
-    var app = express()
-        .use(SocketIOFileUpload.router)
-        .use(express.static(__dirname + "/public"))
-        .listen(80);
+// Make your Express server:
+var app = express()
+    .use(SocketIOFileUpload.router)
+    .use(express.static(__dirname + "/public"))
+    .listen(80);
 
-    // Start up Socket.IO:
-    var io = socketio.listen(app);
-    io.sockets.on("connection", function(socket){
+// Start up Socket.IO:
+var io = socketio.listen(app);
+io.sockets.on("connection", function(socket){
 
-        // Make an instance of SocketIOFileUpload and listen on this socket:
-        var uploader = new SocketIOFileUpload();
-        uploader.dir = "/srv/uploads";
-        uploader.listen(socket);
+    // Make an instance of SocketIOFileUpload and listen on this socket:
+    var uploader = new SocketIOFileUpload();
+    uploader.dir = "/srv/uploads";
+    uploader.listen(socket);
 
-        // Do something when a file is saved:
-        uploader.on("saved", function(event){
-            console.log(event.file);
-        });
-
-        // Error handler:
-        uploader.on("error", function(event){
-            console.log("Error from uploader", event);
-        });
+    // Do something when a file is saved:
+    uploader.on("saved", function(event){
+        console.log(event.file);
     });
+
+    // Error handler:
+    uploader.on("error", function(event){
+        console.log("Error from uploader", event);
+    });
+});
+```
 
 ### Client Code: public/index.html
 
-    <!DOCTYPE html>
-    <html>
-    <head>
-    <title>Upload Files</title>
-    <script src="/siofu/client.js"></script>
-    <script src="/socket.io/socket.io.js"></script>
+```html
+<!DOCTYPE html>
+<html>
+<head>
+<title>Upload Files</title>
+<script src="/siofu/client.js"></script>
+<script src="/socket.io/socket.io.js"></script>
 
-    <script type="text/javascript">
-    document.addEventListener("DOMContentLoaded", function(){
+<script type="text/javascript">
+document.addEventListener("DOMContentLoaded", function(){
 
-        // Initialize instances:
-        var socket = io.connect();
-        var siofu = new SocketIOFileUpload(socket);
+    // Initialize instances:
+    var socket = io.connect();
+    var siofu = new SocketIOFileUpload(socket);
 
-        // Configure the three ways that SocketIOFileUpload can read files:
-        document.getElementById("upload_btn").addEventListener("click", siofu.prompt, false);
-        siofu.listenOnInput(document.getElementById("upload_input"));
-        siofu.listenOnDrop(document.getElementById("file_drop"));
+    // Configure the three ways that SocketIOFileUpload can read files:
+    document.getElementById("upload_btn").addEventListener("click", siofu.prompt, false);
+    siofu.listenOnInput(document.getElementById("upload_input"));
+    siofu.listenOnDrop(document.getElementById("file_drop"));
 
-        // Do something on upload progress:
-        siofu.addEventListener("progress", function(event){
-            var percent = event.bytesLoaded / event.file.size * 100;
-            console.log("File is", percent.toFixed(2), "percent loaded");
-        });
+    // Do something on upload progress:
+    siofu.addEventListener("progress", function(event){
+        var percent = event.bytesLoaded / event.file.size * 100;
+        console.log("File is", percent.toFixed(2), "percent loaded");
+    });
 
-        // Do something when a file is uploaded:
-        siofu.addEventListener("complete", function(event){
-            console.log(event.success);
-            console.log(event.file);
-        });
+    // Do something when a file is uploaded:
+    siofu.addEventListener("complete", function(event){
+        console.log(event.success);
+        console.log(event.file);
+    });
 
-    }, false);
-    </script>
+}, false);
+</script>
 
-    </head>
-    <body>
+</head>
+<body>
 
-    <p><button id="upload_btn">Prompt for File</button></p>
-    <p><label>Choose File: <input type="file" id="upload_input"/></label></p>
-    <div id="file_drop" dropzone="copy" title="drop files for upload">Drop File</div>
+<p><button id="upload_btn">Prompt for File</button></p>
+<p><label>Choose File: <input type="file" id="upload_input"/></label></p>
+<div id="file_drop" dropzone="copy" title="drop files for upload">Drop File</div>
 
-    </body>
-    </html>
+</body>
+</html>
+```
 
 ## Future Work
 
