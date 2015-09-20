@@ -11,6 +11,7 @@
   "dependencies": {},
   "devDependencies": {
     "browserify": "^11.0.1",
+    "buffer-equals": "^1.0.3",
     "chrome-location": "^1.2.1",
     "concat-stream": "^1.5.0",
     "ecstatic": "^0.8.0",

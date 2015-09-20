@@ -4,7 +4,7 @@ var SiofuClient = require("../../client.js");
 
 
 test("basic functionality", function (t) {
-	var socket = new SocketIoClient("http://localhost:3000");
+	var socket = new SocketIoClient();
 	var client = new SiofuClient(socket);
 
 	var submittedFiles = null;
