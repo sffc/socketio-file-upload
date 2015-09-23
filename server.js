@@ -68,6 +68,7 @@ function SocketIOFileUploadServer() {
 	 */
 	var _emitComplete = function (socket, id, success) {
 		var fileInfo = files[id];
+		fileInfo.clientDetail.finalName = fileInfo.pathName.split('/').pop();
 		socket.emit("siofu_complete", {
 			id: id,
 			success: success,
