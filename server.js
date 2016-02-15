@@ -57,6 +57,14 @@ function SocketIOFileUploadServer() {
 	 * to the disk.  null = allow any file size
 	 */
 	self.maxFileSize = null;
+	
+	/**
+	 * Whether or not to emit an error event if a progress chunk fails to
+	 * finish writing.  The failure could be a harmless notification that the
+	 * file is larger than the internal buffer size, or it could mean that the
+	 * file upload triggered an ENOSPC error.
+	 */
+	self.emitChunkFail = false;
 
 	var files = [];
 
@@ -213,7 +221,7 @@ function SocketIOFileUploadServer() {
 				}
 				else {
 					if (fileInfo.writeStream) {
-						if (!fileInfo.writeStream.write(buffer)) {
+						if (!fileInfo.writeStream.write(buffer) && self.emitChunkFail) {
 							self.emit("error", {
 								file: fileInfo,
 								error: new Error("Write of chunk failed (ENOSPC?)"),

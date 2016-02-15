@@ -93,6 +93,7 @@ That's all you need to get started.  For the detailed API, continue reading belo
     - [instance.dir = "/path/to/upload/directory"](#instancedir--pathtouploaddirectory)
     - [instance.mode = "0666"](#instancemode--0666)
     - [instance.maxFileSize = null](#instancemaxfilesize--null-1)
+    - [instance.emitChunkFail = false](#instanceemitchunkfail--false)
 - [Server-Side Events](#events-1)
     - [start](#start-1)
     - [progress](#progress-1)
@@ -431,6 +432,10 @@ Use these UNIX permissions when saving the uploaded file.  Defaults to `0666`.
 The maximum file size, in bytes, to write to the disk.  If file data is received from the client that exceeds this bound, the data will not be written to the disk and an "error" event will be thrown.  Defaults to `null`, in which no maximum file size is enforced.
 
 Note that the other events like "progress", "complete", and "saved" will still be emitted even if the file's maximum allowed size had been exceeded.  However, in those events, `event.file.success` will be false.
+
+#### instance.emitChunkFail = false
+
+Whether or not to emit an error event if a progress chunk fails to finish writing.  In most cases, the failure is a harmless notification that the file is larger than the internal buffer size, but it could also mean that the file upload triggered an ENOSPC error.  It may be useful to enable this error event if you are concerned about uploads running out of space.
 
 ### Events
 
