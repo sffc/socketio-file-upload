@@ -213,7 +213,13 @@ function SocketIOFileUploadServer() {
 				}
 				else {
 					if (fileInfo.writeStream) {
-						fileInfo.writeStream.write(buffer);
+						if (!fileInfo.writeStream.write(buffer)) {
+							self.emit("error", {
+								file: fileInfo,
+								error: new Error("Write of chunk failed (ENOSPC?)"),
+								memo: "self-thrown from progress event"
+							});
+						}
 					}
 				}
 
