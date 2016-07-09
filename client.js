@@ -37,7 +37,7 @@
 		define(name, factory);
 	}
 	else if (typeof module === 'object' && module.exports) {
-        	module.exports = factory();
+					module.exports = factory();
 	}
 	else {
 		scope[name] = factory();
@@ -56,6 +56,7 @@
 	// Private and Public Variables
 	var callbacks = {}, uploadedFiles = [], readyCallbacks = [];
 	self.fileInputElementId = "siofu_input";
+	self.resetFileInputs = true;
 	self.useText = false;
 	self.serializedOctets = false;
 	self.useBuffer = true;
@@ -340,6 +341,19 @@
 		var files = event.target.files || event.dataTransfer.files;
 		event.preventDefault();
 		_baseFileSelectCallback(files);
+
+		if (self.resetFileInputs) {
+			try {
+					event.target.value = ""; //for IE11, latest Chrome/Firefox/Opera...
+			} catch(err) {}
+			if (event.target.value) { //for IE5 ~ IE10
+				var form = document.createElement("form"),
+				parentNode = event.target.parentNode, ref = event.target.nextSibling;
+				form.appendChild(event.target);
+				form.reset();
+				parentNode.insertBefore(event.target, ref);
+			}
+		}
 	};
 
 

@@ -246,6 +246,10 @@ instance.destroy();
 instance = null;
 ```
 
+#### instance.resetFileInputs = true
+
+Defaults to `true`, which resets file input elements to their empty state after the user selects a file.  If you do not reset the file input elements, if the user selects a file with the same name as the previous file, then the second file may not be uploaded.
+
 #### instance.maxFileSize = null
 
 Will cancel any attempt by the user to upload a file larger than this number of bytes.  An "error" event with code 1 will be emitted if such an attempt is made.  Defaults to a value of `null`, which does not enforce a file size limit.
