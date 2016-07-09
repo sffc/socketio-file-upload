@@ -74,6 +74,7 @@ That's all you need to get started.  For the detailed API, continue reading belo
     - [instance.prompt()](#instanceprompt)
     - [instance.submitFiles(files)](#instancesubmitfilesfiles)
     - [instance.destroy()](#instancedestroy)
+    - [instance.resetFileInputs = true](#instanceresetFileInputs--true)
     - [instance.maxFileSize = null](#instancemaxfilesize--null)
     - [instance.chunkSize = 100 KiB](#instancechunksize--100-kib)
     - [instance.useText = false](#instanceusetext--false)

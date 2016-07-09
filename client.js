@@ -37,7 +37,7 @@
 		define(name, factory);
 	}
 	else if (typeof module === 'object' && module.exports) {
-					module.exports = factory();
+		module.exports = factory();
 	}
 	else {
 		scope[name] = factory();
