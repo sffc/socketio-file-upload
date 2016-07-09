@@ -1,5 +1,4 @@
 node_modules/
-public_html/
-uploads/
-app.js
+demo/node_modules/
+demo/uploads/
 test/serve/bundle.js
