@@ -76,6 +76,12 @@ function SocketIOFileUploadServer() {
 	 */
 	var _emitComplete = function (socket, id, success) {
 		var fileInfo = files[id];
+
+		// Check if the upload was aborted
+		if (!fileInfo) {
+			return;
+		}
+
 		socket.emit("siofu_complete", {
 			id: id,
 			success: success,
@@ -161,6 +167,11 @@ function SocketIOFileUploadServer() {
 					// Update the file modified time.  This doesn't seem to work; I'm not
 					// sure if it's my error or a bug in Node.
 					fs.utimes(fileInfo.pathName, new Date(), fileInfo.mtime, function (err) {
+						// Check if the upload was aborted
+						if (!files[data.id]) {
+							return;
+						}
+
 						// I'm not sure what arguments the futimes callback is passed.
 						// Based on node_file.cc, it looks like it is passed zero
 						// arguments (version 0.10.6 line 140), but the docs say that
@@ -170,6 +181,8 @@ function SocketIOFileUploadServer() {
 							_emitComplete(socket, data.id, fileInfo.success);
 							console.log("SocketIOFileUploadServer Error (_uploadDone fs.utimes):");
 							console.log(err);
+							_cleanupFile(data.id);
+							return;
 						}
 
 						// Emit the "saved" event to the server-side listeners
@@ -177,10 +190,12 @@ function SocketIOFileUploadServer() {
 							file: fileInfo
 						});
 						_emitComplete(socket, data.id, fileInfo.success);
+						_cleanupFile(data.id);
 					});
 				}
 				else {
 					_emitComplete(socket, data.id, fileInfo.success);
+					_cleanupFile(data.id);
 				}
 			}
 			catch (err) {
@@ -193,8 +208,6 @@ function SocketIOFileUploadServer() {
 				file: fileInfo,
 				interrupt: !!data.interrupt
 			});
-
-			_cleanupFile(data.id);
 		};
 	};
 
@@ -282,6 +295,11 @@ function SocketIOFileUploadServer() {
 				file: fileInfo
 			});
 
+			// Abort right now if the "start" event aborted the file upload.
+			if (!files[data.id]) {
+				return;
+			}
+
 			// If we're not saving the file, we are ready to start receiving data now.
 			if (!self.dir) {
 				socket.emit("siofu_ready", {
@@ -293,6 +311,11 @@ function SocketIOFileUploadServer() {
 				// Find a filename and get the handler.  Then tell the client that
 				// we're ready to start receiving data.
 				_findFileName(fileInfo, function (err, newBase, pathName) {
+					// Check if the upload was aborted
+					if (!files[data.id]) {
+						return;
+					}
+
 					if (err) {
 						_emitComplete(socket, data.id, false);
 						self.emit("error", {
@@ -313,12 +336,22 @@ function SocketIOFileUploadServer() {
 							mode: self.mode
 						});
 						writeStream.on("open", function () {
+							// Check if the upload was aborted
+							if (!files[data.id]) {
+								return;
+							}
+
 							socket.emit("siofu_ready", {
 								id: data.id,
 								name: newBase
 							});
 						});
 						writeStream.on("error", function (err) {
+							// Check if the upload was aborted
+							if (!files[data.id]) {
+								return;
+							}
+
 							_emitComplete(socket, data.id, false);
 							self.emit("error", {
 								file: fileInfo,
