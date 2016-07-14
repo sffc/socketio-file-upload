@@ -150,10 +150,14 @@ function SocketIOFileUploadServer() {
 	var _uploadDone = function (socket) {
 		return function (data) {
 			var fileInfo = files[data.id];
+
+			// Check if the upload was aborted
+			if (!fileInfo) {
+				return;
+			}
+
 			try {
 				if (fileInfo.writeStream) {
-					fileInfo.writeStream.end();
-
 					// Update the file modified time.  This doesn't seem to work; I'm not
 					// sure if it's my error or a bug in Node.
 					fs.utimes(fileInfo.pathName, new Date(), fileInfo.mtime, function (err) {
@@ -189,6 +193,8 @@ function SocketIOFileUploadServer() {
 				file: fileInfo,
 				interrupt: !!data.interrupt
 			});
+
+			_cleanupFile(data.id);
 		};
 	};
 
@@ -196,6 +202,12 @@ function SocketIOFileUploadServer() {
 		//jshint unused:false
 		return function (data) {
 			var fileInfo = files[data.id], buffer;
+
+			// Check if the upload was aborted
+			if (!fileInfo) {
+				return;
+			}
+
 			try {
 				if (data.base64) {
 					buffer = new Buffer(data.content, "base64");
@@ -218,6 +230,7 @@ function SocketIOFileUploadServer() {
 						error: new Error("Max allowed file size exceeded"),
 						memo: "self-thrown from progress event"
 					});
+					_cleanupFile(data.id);
 				}
 				else {
 					if (fileInfo.writeStream) {
@@ -287,6 +300,7 @@ function SocketIOFileUploadServer() {
 							error: err,
 							memo: "computing file name"
 						});
+						_cleanupFile(data.id);
 						return;
 					}
 
@@ -311,6 +325,7 @@ function SocketIOFileUploadServer() {
 								error: err,
 								memo: "from within write stream"
 							});
+							_cleanupFile(data.id);
 						});
 						files[data.id].writeStream = writeStream;
 					}
@@ -321,12 +336,21 @@ function SocketIOFileUploadServer() {
 							error: err,
 							memo: "creating write stream"
 						});
+						_cleanupFile(data.id);
 						return;
 					}
 				});
 			}
 		};
 	};
+
+	var _cleanupFile = function (id) {
+		var fileInfo = files[id];
+		if (fileInfo.writeStream) {
+			fileInfo.writeStream.end();
+		}
+		delete files[id];
+	}
 
 	/**
 	 * Public method.  Listen to a Socket.IO socket for a file upload event
@@ -340,6 +364,32 @@ function SocketIOFileUploadServer() {
 		socket.on("siofu_progress", _uploadProgress(socket));
 		socket.on("siofu_done", _uploadDone(socket));
 	};
+
+	/**
+	 * Public method.  Abort an upload that may be in progress.  Throws an
+	 * exception if the specified file upload is not in progress.
+	 *
+	 * @param  {String} id     The ID of the file upload to abort.
+	 * @param  {Socket} socket The socket that this instance is connected to.
+	 * @return {void}
+	 */
+	this.abort = function (id, socket) {
+		if (!socket) {
+			throw new Error("Please pass the socket instance as the second argument to abort()");
+		}
+
+		var fileInfo = files[id];
+		if (!fileInfo) {
+			throw new Error("File with specified ID does not exist: " + id);
+		}
+
+		fileInfo.success = false;
+		socket.emit("siofu_error", {
+			id: id,
+			message: "File upload aborted by server"
+		});
+		_cleanupFile(id);
+	}
 }
 util.inherits(SocketIOFileUploadServer, EventEmitter);
 
