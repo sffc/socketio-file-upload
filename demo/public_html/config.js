@@ -64,6 +64,7 @@ require(["socket.io", "SocketIOFileUpload"], function (io, SocketIOFileUpload) {
 	uploader.maxFileSize = 20000;
 	uploader.useBuffer = true;
 	uploader.chunkSize = 1024;
+	uploader.chunkDelay = 2000;
 	//uploader.useText = true;
 	//uploader.serializedOctets = true;
 	document.getElementById("ul_btn").addEventListener("click", function(){

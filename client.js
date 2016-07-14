@@ -61,6 +61,7 @@
 	self.serializedOctets = false;
 	self.useBuffer = true;
 	self.chunkSize = 1024 * 100; // 100kb default chunk size
+	self.chunkDelay = 0;
 
 	/**
 	 * Private method to dispatch a custom event on the instance.
@@ -216,7 +217,7 @@
 			offset += chunkSize;
 			if (offset < file.size) {
 				// Read in the next chunk
-				processChunk();
+				setTimeout(processChunk, self.chunkDelay);
 			}
 			else {
 				// All done!

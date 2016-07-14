@@ -77,6 +77,7 @@ That's all you need to get started.  For the detailed API, continue reading belo
     - [instance.resetFileInputs = true](#instanceresetFileInputs--true)
     - [instance.maxFileSize = null](#instancemaxfilesize--null)
     - [instance.chunkSize = 100 KiB](#instancechunksize--100-kib)
+    - [instance.chunkDelay = 0 ms](#instancechunkdelay--0-ms)
     - [instance.useText = false](#instanceusetext--false)
     - [instance.useBuffer = true](#instanceusebuffer--true)
     - [instance.serializeOctets = false](#instanceserializeoctets--false)
@@ -276,6 +277,10 @@ The default value is 100 KiB, which is specified as
 `instance.chunkSize = 1024 * 100;`
 
 Setting this parameter to 0 disables chunking of files.
+
+#### instance.chunkDelay = 0 ms
+
+The delay between reading chunks from the file.  Defaults to 0 ms, or no delay.  Set this to a larger number in order to put time between reading chunks, which might be useful for rate-limiting, for example.
 
 #### instance.useText = false
 
