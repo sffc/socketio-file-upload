@@ -59,8 +59,8 @@ io.sockets.on("connection", function(socket){
 		console.log("Error: "+data.memo);
 		console.log(data.error);
 	});
-	siofuServer.on("progress", function(event){
-		if (/exe/.test(event.file.name)) {
+	siofuServer.on("start", function(event){
+		if (/\.exe$/.test(event.file.name)) {
 			console.log("Aborting: " + event.file.id);
 			siofuServer.abort(event.file.id, socket);
 		}

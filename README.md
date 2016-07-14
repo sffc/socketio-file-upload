@@ -92,6 +92,7 @@ That's all you need to get started.  For the detailed API, continue reading belo
     - [SocketIOFileUpload.listen(app)](#socketiofileuploadlistenapp)
     - [SocketIOFileUpload.router](#socketiofileuploadrouter)
     - [instance.listen(socket)](#instancelistensocket)
+    - [instance.abort(id, socket)](#instanceabortid-socket)
     - [instance.dir = "/path/to/upload/directory"](#instancedir--pathtouploaddirectory)
     - [instance.mode = "0666"](#instancemode--0666)
     - [instance.maxFileSize = null](#instancemaxfilesize--null-1)
@@ -424,6 +425,18 @@ Listen for uploads occuring on this Socket.IO socket.
 io.sockets.on("connection", function(socket){
     var uploader = new SocketIOFileUpload();
     uploader.listen(socket);
+});
+```
+
+#### instance.abort(id, socket)
+
+Aborts an upload that is in progress.  Example use case:
+
+```javascript
+uploader.on("start", function(event){
+    if (/\.exe$/.test(event.file.name)) {
+        uploader.abort(event.file.id, socket);
+    }
 });
 ```
 
