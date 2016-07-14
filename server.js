@@ -353,6 +353,28 @@ function SocketIOFileUploadServer() {
 	}
 
 	/**
+	 * Private function to handle a client disconnect event.
+	 * @param  {Socket} socket The socket on which the listener is bound
+	 * @return {Function} A function compatible with a Socket.IO callback
+	 */
+	var _onDisconnect = function (socket) {
+		return function () {
+			for (var id in files) {
+				if (files.hasOwnProperty(id)) {
+					var fileInfo = files[id];
+					self.emit("error", {
+						file: fileInfo,
+						error: new Error("Client disconnected in the middle of an upload"),
+						memo: "disconnect during upload"
+					});
+					_cleanupFile(id);
+					return;
+				}
+			}
+		}
+	}
+
+	/**
 	 * Public method.  Listen to a Socket.IO socket for a file upload event
 	 * emitted from the client-side library.
 	 *
@@ -363,6 +385,7 @@ function SocketIOFileUploadServer() {
 		socket.on("siofu_start", _uploadStart(socket));
 		socket.on("siofu_progress", _uploadProgress(socket));
 		socket.on("siofu_done", _uploadDone(socket));
+		socket.on("disconnect", _onDisconnect(socket));
 	};
 
 	/**
