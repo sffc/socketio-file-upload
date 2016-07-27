@@ -37,7 +37,7 @@
 		define(name, factory);
 	}
 	else if (typeof module === 'object' && module.exports) {
-        	module.exports = factory();
+		module.exports = factory();
 	}
 	else {
 		scope[name] = factory();
@@ -54,12 +54,14 @@
 	}
 
 	// Private and Public Variables
-	var callbacks = {}, uploadedFiles = [], readyCallbacks = [];
+	var callbacks = {}, uploadedFiles = [], readyCallbacks = [], communicators = {};
 	self.fileInputElementId = "siofu_input";
+	self.resetFileInputs = true;
 	self.useText = false;
 	self.serializedOctets = false;
 	self.useBuffer = true;
 	self.chunkSize = 1024 * 100; // 100kb default chunk size
+	self.chunkDelay = 0;
 
 	/**
 	 * Private method to dispatch a custom event on the instance.
@@ -132,6 +134,9 @@
 		if (reader._realReader) reader = reader._realReader; // Support Android Crosswalk
 		uploadedFiles.push(file);
 
+		// An object for the outside to use to communicate with us
+		var communicator = { id: id };
+
 		// Calculate chunk size
 		var chunkSize = self.chunkSize;
 		if (chunkSize >= file.size || chunkSize <= 0) chunkSize = file.size;
@@ -191,6 +196,9 @@
 		// To compensate, we will manually load the file in chunks of a
 		// size specified by the user in the uploader.chunkSize property.
 		var processChunk = function () {
+			// Abort if we are told to do so.
+			if (communicator.abort) return;
+
 			var chunk = file.slice(offset, Math.min(offset+chunkSize, file.size));
 			if (useText) {
 				reader.readAsText(chunk);
@@ -202,6 +210,9 @@
 
 		// Callback for when the reader has completed a load event.
 		var loadCb = function (event) {
+			// Abort if we are told to do so.
+			if (communicator.abort) return;
+
 			// Transmit the newly loaded data to the server and emit a client event
 			var bytesLoaded = Math.min(offset+chunkSize, file.size);
 			transmitPart(offset, bytesLoaded, event.target.result);
@@ -215,7 +226,7 @@
 			offset += chunkSize;
 			if (offset < file.size) {
 				// Read in the next chunk
-				processChunk();
+				setTimeout(processChunk, self.chunkDelay);
 			}
 			else {
 				// All done!
@@ -264,6 +275,8 @@
 			processChunk();
 		};
 		readyCallbacks.push(readyCallback);
+
+		return communicator;
 	};
 
 	/**
@@ -278,7 +291,8 @@
 		for (var i = 0; i < files.length; i++) {
 			// Evaluate each file in a closure, because we will need a new
 			// instance of FileReader for each file.
-			_loadOne(files[i]);
+			var communicator = _loadOne(files[i]);
+			communicators[communicator.id] = communicator;
 		}
 	};
 
@@ -340,6 +354,19 @@
 		var files = event.target.files || event.dataTransfer.files;
 		event.preventDefault();
 		_baseFileSelectCallback(files);
+
+		if (self.resetFileInputs) {
+			try {
+					event.target.value = ""; //for IE11, latest Chrome/Firefox/Opera...
+			} catch(err) {}
+			if (event.target.value) { //for IE5 ~ IE10
+				var form = document.createElement("form"),
+				parentNode = event.target.parentNode, ref = event.target.nextSibling;
+				form.appendChild(event.target);
+				form.reset();
+				parentNode.insertBefore(event.target, ref);
+			}
+		}
 	};
 
 
@@ -449,7 +476,12 @@
 	this.destroy = function () {
 		_stopListening();
 		_removeInputElement();
-		callbacks = {}, uploadedFiles = [], readyCallbacks = [];
+		for (var id in communicators) {
+			if (communicators.hasOwnProperty(id)) {
+				communicators[id].abort = true;
+			}
+		}
+		callbacks = null, uploadedFiles = null, readyCallbacks = null, communicators = null;
 	};
 
 	/**
@@ -550,6 +582,7 @@
 			message: data.message,
 			code: 0
 		});
+		communicators[data.id].abort = true;
 	});
  }
 }));

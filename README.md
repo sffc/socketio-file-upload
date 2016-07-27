@@ -74,8 +74,10 @@ That's all you need to get started.  For the detailed API, continue reading belo
     - [instance.prompt()](#instanceprompt)
     - [instance.submitFiles(files)](#instancesubmitfilesfiles)
     - [instance.destroy()](#instancedestroy)
+    - [instance.resetFileInputs = true](#instanceresetFileInputs--true)
     - [instance.maxFileSize = null](#instancemaxfilesize--null)
     - [instance.chunkSize = 100 KiB](#instancechunksize--100-kib)
+    - [instance.chunkDelay = 0 ms](#instancechunkdelay--0-ms)
     - [instance.useText = false](#instanceusetext--false)
     - [instance.useBuffer = true](#instanceusebuffer--true)
     - [instance.serializeOctets = false](#instanceserializeoctets--false)
@@ -90,6 +92,7 @@ That's all you need to get started.  For the detailed API, continue reading belo
     - [SocketIOFileUpload.listen(app)](#socketiofileuploadlistenapp)
     - [SocketIOFileUpload.router](#socketiofileuploadrouter)
     - [instance.listen(socket)](#instancelistensocket)
+    - [instance.abort(id, socket)](#instanceabortid-socket)
     - [instance.dir = "/path/to/upload/directory"](#instancedir--pathtouploaddirectory)
     - [instance.mode = "0666"](#instancemode--0666)
     - [instance.maxFileSize = null](#instancemaxfilesize--null-1)
@@ -246,6 +249,10 @@ instance.destroy();
 instance = null;
 ```
 
+#### instance.resetFileInputs = true
+
+Defaults to `true`, which resets file input elements to their empty state after the user selects a file.  If you do not reset the file input elements, if the user selects a file with the same name as the previous file, then the second file may not be uploaded.
+
 #### instance.maxFileSize = null
 
 Will cancel any attempt by the user to upload a file larger than this number of bytes.  An "error" event with code 1 will be emitted if such an attempt is made.  Defaults to a value of `null`, which does not enforce a file size limit.
@@ -271,6 +278,10 @@ The default value is 100 KiB, which is specified as
 `instance.chunkSize = 1024 * 100;`
 
 Setting this parameter to 0 disables chunking of files.
+
+#### instance.chunkDelay = 0 ms
+
+The delay between reading chunks from the file.  Defaults to 0 ms, or no delay.  Set this to a larger number in order to put time between reading chunks, which might be useful for rate-limiting, for example.
 
 #### instance.useText = false
 
@@ -414,6 +425,18 @@ Listen for uploads occuring on this Socket.IO socket.
 io.sockets.on("connection", function(socket){
     var uploader = new SocketIOFileUpload();
     uploader.listen(socket);
+});
+```
+
+#### instance.abort(id, socket)
+
+Aborts an upload that is in progress.  Example use case:
+
+```javascript
+uploader.on("start", function(event){
+    if (/\.exe$/.test(event.file.name)) {
+        uploader.abort(event.file.id, socket);
+    }
 });
 ```
 
