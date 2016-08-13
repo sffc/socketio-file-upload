@@ -220,7 +220,7 @@ Unfortunately, this method does not work in Firefox for security reasons.  Read 
 
 #### instance.submitFiles(files)
 
-Call this method to manually submit a `FileList` object to be uploaded over the socket.  The argument is of type [FileList](https://developer.mozilla.org/en-US/docs/Web/API/FileList).
+Call this method to manually submit an array of files.  The argument can be either a [FileList](https://developer.mozilla.org/en-US/docs/Web/API/FileList) or an array of [File](https://developer.mozilla.org/en-US/docs/Web/API/File) objects.
 
 #### instance.destroy()
 
