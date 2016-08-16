@@ -1,5 +1,5 @@
 /*
- *                      Copyright (C) 2013 Shane Carr
+ *                 Copyright (C) 2016 Shane Carr and others
  *                               X11 License
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
@@ -26,41 +26,42 @@
  * from the authors or copyright holders.
  */
 
-// Require Libraries
-var util = require("util"),
-	EventEmitter = require("events").EventEmitter,
-	path = require("path"),
-	fs = require("fs");
+// Require libraries.
+var util = require('util');
+var EventEmitter = require('events').EventEmitter;
+var path = require('path');
+var fs = require('fs');
 
-
-function SocketIOFileUploadServer() {
-	"use strict";
+function SocketIOFileUploadServer () {
+	'use strict';
 
 	EventEmitter.call(this);
-	var self = this; // avoids context issues
+	var self = this;
 
 	/**
-	 * Directory in which to save uploaded files.  null = do not save files
+	 * Directory in which to save uploaded files. If null, no files will be saved.
+	 *
 	 * @type {String}
 	 */
 	self.dir = null;
 
 	/**
-	 * What mode (UNIX permissions) in which to save uploaded files
+	 * The mode (UNIX permissions) in which to save uploaded files.
+	 *
 	 * @type {Number}
 	 */
-	self.mode = "0666";
+	self.mode = '0666';
 
 	/**
-	 * Maximum file size, in bytes, when saving files.  An "error" event will
+	 * Maximum file size, in bytes, when saving files. An "error" event will
 	 * be emitted when this size is exceeded, and the data will not be written
-	 * to the disk.  null = allow any file size
+	 * to the disk. If null, allow any file size.
 	 */
 	self.maxFileSize = null;
-	
+
 	/**
 	 * Whether or not to emit an error event if a progress chunk fails to
-	 * finish writing.  The failure could be a harmless notification that the
+	 * finish writing. The failure could be a harmless notification that the
 	 * file is larger than the internal buffer size, or it could mean that the
 	 * file upload triggered an ENOSPC error.
 	 */
@@ -70,19 +71,22 @@ function SocketIOFileUploadServer() {
 
 	/**
 	 * Private function to emit the "siofu_complete" message on the socket.
-	 * @param  {Number} id      The file ID as passed on the siofu_upload.
-	 * @param  {boolean} success
+	 *
+	 * @param {Number} id
+	 *   The file ID as passed on the siofu_upload.
+	 * @param {boolean} success
+	 *
 	 * @return {void}
 	 */
 	var _emitComplete = function (socket, id, success) {
 		var fileInfo = files[id];
 
-		// Check if the upload was aborted
+		// Check if the upload was aborted.
 		if (!fileInfo) {
 			return;
 		}
 
-		socket.emit("siofu_complete", {
+		socket.emit('siofu_complete', {
 			id: id,
 			success: success,
 			detail: fileInfo.clientDetail
@@ -90,29 +94,35 @@ function SocketIOFileUploadServer() {
 	};
 
 	/**
-	 * Private function to recursively find a file name by incrementing "inc" until
-	 * an empty file is found.
-	 * @param  {String}   ext   File extension
-	 * @param  {String}   base  File base name
-	 * @param  {Date}     mtime File modified time
-	 * @param  {Number}   inc   Current number to suffix the base name.  Pass -1
-	 *                          to not suffix a number to the base name.
-	 * @param  {Function} next  Callback function when the save is complete.
-	 *                          Will be passed a possible error as well as the
-	 *                          final base name.
+	 * Private function to recursively find a file name by incrementing "inc"
+	 * until an empty file is found.
+	 *
+	 * @param {String} ext
+	 *   The file's extension.
+	 * @param {String} base
+	 *   The file's base name.
+	 * @param {Date} mtime
+	 *   The file's modified time.
+	 * @param {Number} inc
+	 *   Current number to suffix the base name. Pass -1 to not suffix a
+	 *   number to the base name.
+	 * @param {Function} next
+	 *   Callback function when the save is complete. Will be passed a possible
+	 *   error as well as the final base name.
+	 *
 	 * @return {void}
 	 */
 	var _findFileNameWorker = function (ext, base, inc, next) {
-		var newBase = (inc === -1) ? base : base + "-" + inc;
+		var newBase = (inc === -1) ? base : base + '-' + inc;
 		var pathName = path.join(self.dir, newBase + ext);
 		fs.exists(pathName, function (exists) {
 			if (exists) {
 				_findFileNameWorker(ext, base, inc + 1, next);
 			}
 			else {
-				fs.open(pathName, "w", self.mode, function (err, fd) {
+				fs.open(pathName, 'w', self.mode, function (err, fd) {
 					if (err) {
-						// Oops!  Pass an error to the callback function.
+						// Oops! Pass an error to the callback function.
 						next(err);
 						return;
 					}
@@ -125,19 +135,22 @@ function SocketIOFileUploadServer() {
 
 	/**
 	 * Private function to save an uploaded file.
-	 * @param  {Object} fileInfo Object containing file name, modified time, and
-	 *                           text content.
+	 *
+	 * @param {Object} fileInfo
+	 *   Object containing file name, modified time, and text content.
+	 *
 	 * @return {void}
 	 */
 	var _findFileName = function (fileInfo, next) {
 		// Strip dangerous characters from the file name
 		var filesafeName = fileInfo.name
-		.replace(/[\/\?<>\\:\*\|":]|[\x00-\x1f\x80-\x9f]|^\.+$/g, "_");
+		.replace(/[\/\?<>\\:\*\|":]|[\x00-\x1f\x80-\x9f]|^\.+$/g, '_');
 
 		var ext = path.extname(filesafeName);
 		var base = path.basename(filesafeName, ext);
 
-		// Use a recursive function to save the file under the first available filename.
+		// Use a recursive function to save the file under the first
+		// available filename.
 		_findFileNameWorker(ext, base, -1, function (err, newBase, pathName, fd) {
 			if (err) {
 				next(err);
@@ -157,17 +170,17 @@ function SocketIOFileUploadServer() {
 		return function (data) {
 			var fileInfo = files[data.id];
 
-			// Check if the upload was aborted
+			// Check if the upload was aborted.
 			if (!fileInfo) {
 				return;
 			}
 
 			try {
 				if (fileInfo.writeStream) {
-					// Update the file modified time.  This doesn't seem to work; I'm not
+					// Update the file modified time. This doesn't seem to work; I'm not
 					// sure if it's my error or a bug in Node.
 					fs.utimes(fileInfo.pathName, new Date(), fileInfo.mtime, function (err) {
-						// Check if the upload was aborted
+						// Check if the upload was aborted.
 						if (!files[data.id]) {
 							return;
 						}
@@ -179,14 +192,14 @@ function SocketIOFileUploadServer() {
 						if (err) {
 							fileInfo.success = false;
 							_emitComplete(socket, data.id, fileInfo.success);
-							console.log("SocketIOFileUploadServer Error (_uploadDone fs.utimes):");
+							console.log('SocketIOFileUploadServer Error (_uploadDone fs.utimes):');
 							console.log(err);
 							_cleanupFile(data.id);
 							return;
 						}
 
-						// Emit the "saved" event to the server-side listeners
-						self.emit("saved", {
+						// Emit the "saved" event to the server-side listeners.
+						self.emit('saved', {
 							file: fileInfo
 						});
 						_emitComplete(socket, data.id, fileInfo.success);
@@ -199,12 +212,12 @@ function SocketIOFileUploadServer() {
 				}
 			}
 			catch (err) {
-				console.log("SocketIOFileUploadServer Error (_uploadDone):");
+				console.log('SocketIOFileUploadServer Error (_uploadDone):');
 				console.log(err);
 			}
 
-			// Emit the "complete" event to the server-side listeners
-			self.emit("complete", {
+			// Emit the "complete" event to the server-side listeners.
+			self.emit('complete', {
 				file: fileInfo,
 				interrupt: !!data.interrupt
 			});
@@ -212,18 +225,18 @@ function SocketIOFileUploadServer() {
 	};
 
 	var _uploadProgress = function (socket) {
-		//jshint unused:false
 		return function (data) {
-			var fileInfo = files[data.id], buffer;
+			var fileInfo = files[data.id];
+			var buffer;
 
-			// Check if the upload was aborted
+			// Check if the upload was aborted.
 			if (!fileInfo) {
 				return;
 			}
 
 			try {
 				if (data.base64) {
-					buffer = new Buffer(data.content, "base64");
+					buffer = new Buffer(data.content, 'base64');
 				}
 				else {
 					buffer = new Buffer(data.content);
@@ -231,39 +244,38 @@ function SocketIOFileUploadServer() {
 
 				fileInfo.size = data.size;
 				fileInfo.bytesLoaded += buffer.length;
-				if (self.maxFileSize !== null
-				 && fileInfo.bytesLoaded > self.maxFileSize) {
+				if (self.maxFileSize !== null && fileInfo.bytesLoaded > self.maxFileSize) {
 					fileInfo.success = false;
-					socket.emit("siofu_error", {
+					socket.emit('siofu_error', {
 						id: data.id,
-						message: "Max allowed file size exceeded"
+						message: 'Max allowed file size exceeded'
 					});
-					self.emit("error", {
+					self.emit('error', {
 						file: fileInfo,
-						error: new Error("Max allowed file size exceeded"),
-						memo: "self-thrown from progress event"
+						error: new Error('Max allowed file size exceeded'),
+						memo: 'self-thrown from progress event'
 					});
 					_cleanupFile(data.id);
 				}
 				else {
 					if (fileInfo.writeStream) {
 						if (!fileInfo.writeStream.write(buffer) && self.emitChunkFail) {
-							self.emit("error", {
+							self.emit('error', {
 								file: fileInfo,
-								error: new Error("Write of chunk failed (ENOSPC?)"),
-								memo: "self-thrown from progress event"
+								error: new Error('Write of chunk failed (ENOSPC?)'),
+								memo: 'self-thrown from progress event'
 							});
 						}
 					}
 				}
 
-				self.emit("progress", {
+				self.emit('progress', {
 					file: fileInfo,
 					buffer: buffer
 				});
 			}
 			catch (err) {
-				console.log("SocketIOFileUploadServer Error (_uploadProgress):");
+				console.log('SocketIOFileUploadServer Error (_uploadProgress):');
 				console.log(err);
 			}
 		};
@@ -271,12 +283,16 @@ function SocketIOFileUploadServer() {
 
 	/**
 	 * Private function to handle the start of a file upload.
-	 * @param  {Socket} socket The socket on which the listener is bound
-	 * @return {Function} A function compatible with a Socket.IO callback
+	 *
+	 * @param {Socket} socket
+	 *   The socket on which the listener is bound.
+	 *
+	 * @return {Function}
+	 *   A function compatible with a Socket.IO callback.
 	 */
 	var _uploadStart = function (socket) {
 		return function (data) {
-			// Save the file information
+			// Save the file information.
 			var fileInfo = {
 				name: data.name,
 				mtime: new Date(data.mtime),
@@ -290,8 +306,8 @@ function SocketIOFileUploadServer() {
 			};
 			files[data.id] = fileInfo;
 
-			// Dispatch event to listeners on the server side
-			self.emit("start", {
+			// Dispatch event to listeners on the server-side.
+			self.emit('start', {
 				file: fileInfo
 			});
 
@@ -302,26 +318,26 @@ function SocketIOFileUploadServer() {
 
 			// If we're not saving the file, we are ready to start receiving data now.
 			if (!self.dir) {
-				socket.emit("siofu_ready", {
+				socket.emit('siofu_ready', {
 					id: data.id,
 					name: null
 				});
 			}
 			else {
-				// Find a filename and get the handler.  Then tell the client that
+				// Find a filename and get the handler. Then tell the client that
 				// we're ready to start receiving data.
 				_findFileName(fileInfo, function (err, newBase, pathName) {
-					// Check if the upload was aborted
+					// Check if the upload was aborted.
 					if (!files[data.id]) {
 						return;
 					}
 
 					if (err) {
 						_emitComplete(socket, data.id, false);
-						self.emit("error", {
+						self.emit('error', {
 							file: fileInfo,
 							error: err,
-							memo: "computing file name"
+							memo: 'computing file name'
 						});
 						_cleanupFile(data.id);
 						return;
@@ -335,28 +351,28 @@ function SocketIOFileUploadServer() {
 						var writeStream = fs.createWriteStream(pathName, {
 							mode: self.mode
 						});
-						writeStream.on("open", function () {
-							// Check if the upload was aborted
+						writeStream.on('open', function () {
+							// Check if the upload was aborted.
 							if (!files[data.id]) {
 								return;
 							}
 
-							socket.emit("siofu_ready", {
+							socket.emit('siofu_ready', {
 								id: data.id,
 								name: newBase
 							});
 						});
-						writeStream.on("error", function (err) {
-							// Check if the upload was aborted
+						writeStream.on('error', function (err) {
+							// Check if the upload was aborted.
 							if (!files[data.id]) {
 								return;
 							}
 
 							_emitComplete(socket, data.id, false);
-							self.emit("error", {
+							self.emit('error', {
 								file: fileInfo,
 								error: err,
-								memo: "from within write stream"
+								memo: 'from within write stream'
 							});
 							_cleanupFile(data.id);
 						});
@@ -364,10 +380,10 @@ function SocketIOFileUploadServer() {
 					}
 					catch (err) {
 						_emitComplete(socket, data.id, false);
-						self.emit("error", {
+						self.emit('error', {
 							file: fileInfo,
 							error: err,
-							memo: "creating write stream"
+							memo: 'creating write stream'
 						});
 						_cleanupFile(data.id);
 						return;
@@ -383,90 +399,103 @@ function SocketIOFileUploadServer() {
 			fileInfo.writeStream.end();
 		}
 		delete files[id];
-	}
+	};
 
 	/**
 	 * Private function to handle a client disconnect event.
-	 * @param  {Socket} socket The socket on which the listener is bound
-	 * @return {Function} A function compatible with a Socket.IO callback
+	 *
+	 * @param {Socket} socket
+	 *   The socket on which the listener is bound.
+	 *
+	 * @return {Function}
+	 *   A function compatible with a Socket.IO callback.
 	 */
 	var _onDisconnect = function (socket) {
 		return function () {
 			for (var id in files) {
 				if (files.hasOwnProperty(id)) {
 					var fileInfo = files[id];
-					self.emit("error", {
+					self.emit('error', {
 						file: fileInfo,
-						error: new Error("Client disconnected in the middle of an upload"),
-						memo: "disconnect during upload"
+						error: new Error('Client disconnected in the middle of an upload'),
+						memo: 'disconnect during upload'
 					});
 					_cleanupFile(id);
 					return;
 				}
 			}
-		}
-	}
-
-	/**
-	 * Public method.  Listen to a Socket.IO socket for a file upload event
-	 * emitted from the client-side library.
-	 *
-	 * @param  {Socket} socket The socket on which to listen
-	 * @return {void}
-	 */
-	this.listen = function (socket) {
-		socket.on("siofu_start", _uploadStart(socket));
-		socket.on("siofu_progress", _uploadProgress(socket));
-		socket.on("siofu_done", _uploadDone(socket));
-		socket.on("disconnect", _onDisconnect(socket));
+		};
 	};
 
 	/**
-	 * Public method.  Abort an upload that may be in progress.  Throws an
+	 * Public method. Listen to a Socket.IO socket for a file upload event
+	 * emitted from the client-side library.
+	 *
+	 * @param {Socket} socket
+	 *   The socket on which to listen.
+	 *
+	 * @return {void}
+	 */
+	this.listen = function (socket) {
+		socket.on('siofu_start', _uploadStart(socket));
+		socket.on('siofu_progress', _uploadProgress(socket));
+		socket.on('siofu_done', _uploadDone(socket));
+		socket.on('disconnect', _onDisconnect(socket));
+	};
+
+	/**
+	 * Public method. Abort an upload that may be in progress. Throws an
 	 * exception if the specified file upload is not in progress.
 	 *
-	 * @param  {String} id     The ID of the file upload to abort.
-	 * @param  {Socket} socket The socket that this instance is connected to.
+	 * @param {String} id
+	 *   The ID of the file upload to abort.
+	 * @param {Socket} socket
+	 *   The socket that this instance is connected to.
+	 *
 	 * @return {void}
 	 */
 	this.abort = function (id, socket) {
 		if (!socket) {
-			throw new Error("Please pass the socket instance as the second argument to abort()");
+			throw new Error('Please pass the socket instance as the second argument to abort()');
 		}
 
 		var fileInfo = files[id];
 		if (!fileInfo) {
-			throw new Error("File with specified ID does not exist: " + id);
+			throw new Error('File with specified ID does not exist: ' + id);
 		}
 
 		fileInfo.success = false;
-		socket.emit("siofu_error", {
+		socket.emit('siofu_error', {
 			id: id,
-			message: "File upload aborted by server"
+			message: 'File upload aborted by server'
 		});
 		_cleanupFile(id);
-	}
+	};
 }
 util.inherits(SocketIOFileUploadServer, EventEmitter);
 
 /**
  * Path at which to serve the client JavaScript file.
+ *
  * @type {String}
  */
-SocketIOFileUploadServer.clientPath = "/siofu/client.js";
+SocketIOFileUploadServer.clientPath = '/siofu/client.js';
 
 /**
  * Private function to serve the static client file.
- * @param  {ServerResponse} res The server response
+ *
+ * @param {ServerResponse} res
+ *   The server response.
+ *
  * @return {void}
  */
 var _serve = function (res) {
-	"use strict";
+	'use strict';
 
-	fs.readFile(__dirname + "/client.min.js", function (err, data) {
+	fs.readFile(path.join(__dirname, '/client.min.js'), function (err, data) {
 		if (err) throw err;
 		res.writeHead(200, {
-			"Content-Type": "text/javascript"
+			'Content-Type': 'text/javascript'
 		});
 		res.write(data);
 		res.end();
@@ -475,13 +504,16 @@ var _serve = function (res) {
 
 /**
  * Transmit the static client file on a vanilla HTTP server.
- * @param  {HTTPServer} app Your HTTP server
+ *
+ * @param {HTTPServer} app
+ *   Your HTTP server.
+ *
  * @return {void}
  */
 SocketIOFileUploadServer.listen = function (app) {
-	"use strict";
+	'use strict';
 
-	app.on("request", function (req, res) {
+	app.on('request', function (req, res) {
 		if (req.url === SocketIOFileUploadServer.clientPath) {
 			_serve(res);
 		}
@@ -490,15 +522,14 @@ SocketIOFileUploadServer.listen = function (app) {
 
 /**
  * Router to serve the static client file on the Connect middleware, including
- * the Express.JS web framework.  Pass this function to your application like
+ * the Express.JS web framework. Pass this function to your application like
  * this:
- *
- *    app.use(SocketIOFileUploadServer.router)
+ *   app.use(SocketIOFileUploadServer.router)
  *
  * You should not need to ever call this function.
  */
 SocketIOFileUploadServer.router = function (req, res, next) {
-	"use strict";
+	'use strict';
 
 	if (req.url === SocketIOFileUploadServer.clientPath) {
 		_serve(res);
