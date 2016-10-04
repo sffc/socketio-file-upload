@@ -2,3 +2,4 @@ node_modules/
 demo/node_modules/
 demo/uploads/
 test/serve/bundle.js
+.idea
