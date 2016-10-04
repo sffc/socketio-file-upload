@@ -27,9 +27,10 @@ test("test setup function", function (t) {
 				startFired++;
 			});
 
-			var progressContent = new Buffer([]);
+			var progressContent = {};
 			uploader.on("progress", function (ev) {
-				progressContent = Buffer.concat([progressContent, ev.buffer]);
+				if (!progressContent[ev.file.id]) progressContent[ev.file.id] = new Buffer([]);
+				progressContent[ev.file.id] = Buffer.concat([progressContent[ev.file.id], ev.buffer]);
 				t.ok(ev.buffer.length <= ev.file.size, "'progress' event");
 			});
 
@@ -53,13 +54,11 @@ test("test setup function", function (t) {
 					fs.readFile(ev.file.pathName, function(err, content){
 						t.error(err, "reading saved file");
 
-						if (!bufferEquals(progressContent, content)) {
+						if (!bufferEquals(progressContent[ev.file.id], content)) {
 							t.fail("Saved file content is not the same as progress buffer");
-							t.end();
-							return;
+						} else {
+							t.pass("Saved file content is same as progress buffer");
 						}
-
-						t.pass("Saved file content is same as progress buffer");
 
 						// No more tests
 						t.end();

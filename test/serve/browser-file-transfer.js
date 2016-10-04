@@ -7,7 +7,7 @@ test("basic functionality", function (t) {
 	var socket = new SocketIoClient();
 	var client = new SiofuClient(socket);
 
-	var submittedFiles = null;
+	var numSubmitted = 0;
 	var startFired = 0;
 	var loadFired = 0;
 	var progressFired = 0;
@@ -33,8 +33,8 @@ test("basic functionality", function (t) {
 	client.listenOnInput(document.querySelector("input"));
 
 	client.addEventListener("choose", function (ev) {
-		submittedFiles = ev.files;
-		t.ok(submittedFiles.length, "user just submitted " + submittedFiles.length + " files");
+		numSubmitted = ev.files.length;
+		t.ok(numSubmitted, "user just submitted " + numSubmitted + " files");
 
 		t.notOk(startFired, "'start' event must not have been fired yet");
 		t.notOk(loadFired, "'load' event must not have been fired yet");
@@ -43,11 +43,11 @@ test("basic functionality", function (t) {
 	});
 
 	client.addEventListener("start", function (ev) {
-		t.ok(++startFired <= submittedFiles.length, "'start' event has not fired too many times");
+		t.ok(++startFired <= numSubmitted, "'start' event has not fired too many times");
 	})
 
 	client.addEventListener("load", function (ev) {
-		t.ok(++loadFired <= submittedFiles.length, "'load' event has not fired too many times");
+		t.ok(++loadFired <= numSubmitted, "'load' event has not fired too many times");
 	});
 
 	client.addEventListener("progress", function (ev) {
@@ -55,16 +55,16 @@ test("basic functionality", function (t) {
 	});
 
 	client.addEventListener("complete", function (ev) {
-		t.ok(++completeFired <= submittedFiles.length, "'complete' event has not fired too many times");
+		t.ok(++completeFired <= numSubmitted, "'complete' event has not fired too many times");
 
 		t.ok(ev.detail, "'complete' event has a 'detail' property");
 		t.ok(ev.success, "'complete' event was successful");
 
-		if (completeFired >= submittedFiles.length) {
+		if (completeFired >= numSubmitted) {
 
-			t.equal(startFired, submittedFiles.length, "'start' event fired the right number of times");
-			t.equal(loadFired, submittedFiles.length, "'load' event fired the right number of times");
-			t.equal(completeFired, submittedFiles.length, "'complete' event fired the right number of times");
+			t.equal(startFired, numSubmitted, "'start' event fired the right number of times");
+			t.equal(loadFired, numSubmitted, "'load' event fired the right number of times");
+			t.equal(completeFired, numSubmitted, "'complete' event fired the right number of times");
 
 			client.destroy();
 			t.end();
