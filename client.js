@@ -261,7 +261,7 @@
 		// Transmit the "start" message to the server.
 		socket.emit("siofu_start", {
 			name: file.name,
-			mtime: file.lastModifiedDate,
+			mtime: file.lastModified,
 			meta: file.meta,
 			size: file.size,
 			encoding: useText ? "text" : "octet",
