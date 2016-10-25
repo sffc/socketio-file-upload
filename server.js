@@ -67,6 +67,8 @@ function SocketIOFileUploadServer() {
 	self.emitChunkFail = false;
 
 	var files = [];
+	var paused = false;
+	var pausedQueue = [];
 
 	/**
 	 * Private function to emit the "siofu_complete" message on the socket.
@@ -276,6 +278,25 @@ function SocketIOFileUploadServer() {
 	 */
 	var _uploadStart = function (socket) {
 		return function (data) {
+			// Check for paused
+			if (paused) {
+				pausedQueue.push([socket, data]);
+				return;
+			}
+
+			// Emit a "prestart" event to allow user to pause.
+			// Skip the prestart event if it has already been emitted for this file.
+			if (!data.emittedPrestart) {
+				data.emittedPrestart = true;
+				self.emit("prestart", {});
+			}
+
+			// Check again for paused
+			if (paused) {
+				pausedQueue.push([socket, data]);
+				return;
+			}
+
 			// Save the file information
 			var fileInfo = {
 				name: data.name,
@@ -419,6 +440,37 @@ function SocketIOFileUploadServer() {
 		socket.on("siofu_progress", _uploadProgress(socket));
 		socket.on("siofu_done", _uploadDone(socket));
 		socket.on("disconnect", _onDisconnect(socket));
+	};
+
+	/* Public method.  When called, pauses the uploader to prevent file uploads
+	 * from starting.  Files that have already emitted a "start" event will not
+	 * be paused.  It is safe to call uploader.pause() on either instance
+	 * creation or upon a "prestart" event.  Any upload attempts started during
+	 * a pause will resume when the instance is unpaused.
+	 */
+	this.pause = function () {
+		paused = true;
+	};
+
+	/**
+	 * Public method.  When called, exits the paused state and starts processing
+	 * upload requests.  See pause() for details.
+	 */
+	this.unpause = function() {
+		paused = false;
+		for (var i=0; i<pausedQueue.length; i++) {
+			var item = pausedQueue[i];
+			_uploadStart(item[0])(item[1]);
+		}
+		pausedQueue = [];
+	};
+
+	/**
+	 * Public method.  Returns whether or not this instance is paused.  See
+	 * pause() for details.
+	 */
+	this.isPaused = function() {
+		return paused;
 	};
 
 	/**

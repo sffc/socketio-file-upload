@@ -2,12 +2,13 @@ var SocketIo = require("socket.io");
 var SiofuServer = require("../server.js");
 
 module.exports = {
-	setup: function(httpServer) {
+	setup: function(httpServer, connectionCb) {
 		var io = new SocketIo(httpServer);
 		var uploader = new SiofuServer();
 
 		io.on("connection", function (socket) {
 			uploader.listen(socket);
+			connectionCb(socket);
 		});
 
 		uploader.dir = "/tmp";

@@ -35,6 +35,7 @@ test("basic functionality", function (t) {
 	client.addEventListener("choose", function (ev) {
 		numSubmitted = ev.files.length;
 		t.ok(numSubmitted, "user just submitted " + numSubmitted + " files");
+		socket.emit("numSubmitted", numSubmitted);
 
 		t.notOk(startFired, "'start' event must not have been fired yet");
 		t.notOk(loadFired, "'load' event must not have been fired yet");

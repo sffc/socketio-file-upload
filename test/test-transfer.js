@@ -15,16 +15,34 @@ test("test setup function", function (t) {
 	var server = http.createServer(requestHandler);
 	setup.listen(server, function(port){
 		return function(){
+			var prestartFired = 0;
 			var startFired = 0;
 			var completeFired = 0;
 			var savedFired = 0;
+			var numSubmitted = -1;
 
-			var uploader = setup.setup(server);
+			var uploader = setup.setup(server, function(socket) {
+				socket.once("numSubmitted", function(_numSubmitted) {
+					numSubmitted = _numSubmitted;
+					t.ok(numSubmitted, "user submitted " + numSubmitted + " files");
+				});
+			});
 			t.ok(uploader, "uploader is not null/undefined");
 			t.equal(typeof uploader, "object", "uploader is an object");
 
+			uploader.on("prestart", function(ev) {
+				prestartFired++;
+				if (prestartFired === 2) {
+					uploader.pause();
+					setTimeout(function() {
+						uploader.unpause();
+					}, 500);
+				}
+			});
+
 			uploader.on("start", function (ev) {
 				startFired++;
+				t.ok(!uploader.isPaused(), "'start' event didn't fire during a pause window");
 			});
 
 			var progressContent = {};
@@ -47,10 +65,12 @@ test("test setup function", function (t) {
 
 				t.ok(ev.file.success, "Successful save");
 
-				if (savedFired >= startFired) {
-					t.equal(completeFired, startFired, "'complete' event fired the right number of times");
-					t.equal(savedFired, startFired, "'saved' event fired the right number of times");
+				if (numSubmitted > 0 && savedFired >= numSubmitted) {
+					t.equal(completeFired, startFired, "'complete' event fired the right number of times")
+					t.equal(savedFired, startFired, "'saved' event fired the right number of times");;
+					t.equal(prestartFired, startFired, "'prestart' event fired the right number of times");
 
+					// Check at least the final file for equality
 					fs.readFile(ev.file.pathName, function(err, content){
 						t.error(err, "reading saved file");
 

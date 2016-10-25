@@ -93,11 +93,13 @@ That's all you need to get started.  For the detailed API, continue reading belo
     - [SocketIOFileUpload.router](#socketiofileuploadrouter)
     - [instance.listen(socket)](#instancelistensocket)
     - [instance.abort(id, socket)](#instanceabortid-socket)
+    - [instance.pause()](#instancepause)
     - [instance.dir = "/path/to/upload/directory"](#instancedir--pathtouploaddirectory)
     - [instance.mode = "0666"](#instancemode--0666)
     - [instance.maxFileSize = null](#instancemaxfilesize--null-1)
     - [instance.emitChunkFail = false](#instanceemitchunkfail--false)
 - [Server-Side Events](#events-1)
+    - [prestart](#prestart)
     - [start](#start-1)
     - [progress](#progress-1)
     - [complete](#complete-1)
@@ -440,6 +442,40 @@ uploader.on("start", function(event){
 });
 ```
 
+#### instance.pause()
+
+Pauses the uploader, preventing it from starting any new uploads.  Uploads that are already in progress, those that have emitted a "start" event, are not affected by causing instance.pause().
+
+It is save to call instance.pause() within the callback for the "prestart" event.
+
+Example use case: ensuring that a directory exists before the uploader attempts to create a new file in the directory.
+
+```javascript
+// on socket connection:
+var dir = "/path/to/uploads";
+uploader.dir = dir;
+uploader.pause();
+fs.stat(dir, function(err, result) {
+    if (err) {
+        // create directory...
+    } else {
+        uploader.unpause();
+    }
+});
+
+// on "prestart" event only:
+uploader.on("prestart", function() {
+    uploader.pause();
+    fs.stat(uploader.dir, function(err, result) {
+        if (err) {
+            // create directory...
+        } else {
+            uploader.unpause();
+        }
+    });
+});
+```
+
 #### instance.dir = "/path/to/upload/directory"
 
 If specified, the module will attempt to save uploaded files in this directory.  The module will intelligently suffix numbers to the uploaded filenames until name conflicts are resolved.  It will also sanitize the filename to help prevent attacks.
@@ -471,9 +507,15 @@ Instances of `SocketIOFileUpload` implement [Node's `EventEmitter` interface](ht
 
 The events are documented below.
 
+#### prestart
+
+The client has requested for at least one file to be uploaded.
+
+This event has no properties, and its primary use is to put the uploader in a "paused" state (see the pause function for details).  Most users should tie into the "start" event instead.
+
 #### start
 
-The client has started the upload process.
+The client has started the upload process, and the server is now processing the request.
 
 ##### Event Properties
 
