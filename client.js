@@ -54,7 +54,11 @@
 	}
 
 	// Private and Public Variables
-	var callbacks = {}, uploadedFiles = [], readyCallbacks = [], communicators = {};
+	var callbacks = {},
+		uploadedFiles = [],
+		chunkCallbacks = [],
+		readyCallbacks = [],
+		communicators = {};
 	self.fileInputElementId = "siofu_input";
 	self.resetFileInputs = true;
 	self.useText = false;
@@ -128,6 +132,7 @@
 		// Scope variables
 		var reader = new FileReader(),
 			id = uploadedFiles.length,
+			uploadComplete = false,
 			useText = self.useText,
 			offset = 0,
 			newName;
@@ -224,11 +229,7 @@
 
 			// Get ready to send the next chunk
 			offset += chunkSize;
-			if (offset < file.size) {
-				// Read in the next chunk
-				setTimeout(processChunk, self.chunkDelay);
-			}
-			else {
+			if (offset >= file.size) {
 				// All done!
 				transmitDone();
 				_dispatch("load", {
@@ -236,6 +237,7 @@
 					reader: reader,
 					name: newName
 				});
+				uploadComplete = true;
 			}
 		};
 		_listenTo(reader, "load", loadCb);
@@ -274,7 +276,12 @@
 			newName = _newName;
 			processChunk();
 		};
+		var chunkCallback = function(){
+			if ( !uploadComplete )
+				processChunk();
+		};
 		readyCallbacks.push(readyCallback);
+		chunkCallbacks.push(chunkCallback);
 
 		return communicator;
 	};
@@ -566,6 +573,9 @@
 
 	// CONSTRUCTOR: Listen to the "complete", "ready", and "error" messages
 	// on the socket.
+	_listenTo(socket, "siofu_chunk", function(data){
+		chunkCallbacks[data.id]();
+	});
 	_listenTo(socket, "siofu_ready", function (data) {
 		readyCallbacks[data.id](data.name);
 	});

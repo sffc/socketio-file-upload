@@ -66,9 +66,16 @@ function SocketIOFileUploadServer() {
 	 */
 	self.emitChunkFail = false;
 
+    /**
+     * Default validator.
+     * @param  {Object} event   Contains { file: fileInfo }
+     * @param  {function} callback   Call it with true to start upload, false to abort
+     */
+    self.uploadValidator = function(event, callback){
+        callback(true);
+    };
+
 	var files = [];
-	var paused = false;
-	var pausedQueue = [];
 
 	/**
 	 * Private function to emit the "siofu_complete" message on the socket.
@@ -256,6 +263,11 @@ function SocketIOFileUploadServer() {
 								memo: "self-thrown from progress event"
 							});
 						}
+                        else {
+                            // Emit that the chunk has been received, so client starts sending the next chunk
+                            socket.emit("siofu_chunk", { id: data.id })
+                        }
+
 					}
 				}
 
@@ -278,24 +290,6 @@ function SocketIOFileUploadServer() {
 	 */
 	var _uploadStart = function (socket) {
 		return function (data) {
-			// Check for paused
-			if (paused) {
-				pausedQueue.push([socket, data]);
-				return;
-			}
-
-			// Emit a "prestart" event to allow user to pause.
-			// Skip the prestart event if it has already been emitted for this file.
-			if (!data.emittedPrestart) {
-				data.emittedPrestart = true;
-				self.emit("prestart", {});
-			}
-
-			// Check again for paused
-			if (paused) {
-				pausedQueue.push([socket, data]);
-				return;
-			}
 
 			// Save the file information
 			var fileInfo = {
@@ -329,6 +323,17 @@ function SocketIOFileUploadServer() {
 				});
 			}
 			else {
+                self.uploadValidator({ file: fileInfo }, function( isValid ){
+                    if ( !isValid )
+                        self.abort( data.id, socket );
+                    else
+                        _serverReady(socket, data, fileInfo);
+                });
+            }
+        };
+    };
+
+    var _serverReady = function(socket, data, fileInfo){
 				// Find a filename and get the handler.  Then tell the client that
 				// we're ready to start receiving data.
 				_findFileName(fileInfo, function (err, newBase, pathName) {
@@ -394,8 +399,6 @@ function SocketIOFileUploadServer() {
 						return;
 					}
 				});
-			}
-		};
 	};
 
 	var _cleanupFile = function (id) {
@@ -440,37 +443,6 @@ function SocketIOFileUploadServer() {
 		socket.on("siofu_progress", _uploadProgress(socket));
 		socket.on("siofu_done", _uploadDone(socket));
 		socket.on("disconnect", _onDisconnect(socket));
-	};
-
-	/* Public method.  When called, pauses the uploader to prevent file uploads
-	 * from starting.  Files that have already emitted a "start" event will not
-	 * be paused.  It is safe to call uploader.pause() on either instance
-	 * creation or upon a "prestart" event.  Any upload attempts started during
-	 * a pause will resume when the instance is unpaused.
-	 */
-	this.pause = function () {
-		paused = true;
-	};
-
-	/**
-	 * Public method.  When called, exits the paused state and starts processing
-	 * upload requests.  See pause() for details.
-	 */
-	this.unpause = function() {
-		paused = false;
-		for (var i=0; i<pausedQueue.length; i++) {
-			var item = pausedQueue[i];
-			_uploadStart(item[0])(item[1]);
-		}
-		pausedQueue = [];
-	};
-
-	/**
-	 * Public method.  Returns whether or not this instance is paused.  See
-	 * pause() for details.
-	 */
-	this.isPaused = function() {
-		return paused;
 	};
 
 	/**
