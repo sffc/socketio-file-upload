@@ -77,7 +77,6 @@ That's all you need to get started.  For the detailed API, continue reading belo
     - [instance.resetFileInputs = true](#instanceresetFileInputs--true)
     - [instance.maxFileSize = null](#instancemaxfilesize--null)
     - [instance.chunkSize = 100 KiB](#instancechunksize--100-kib)
-    - [instance.chunkDelay = 0 ms](#instancechunkdelay--0-ms)
     - [instance.useText = false](#instanceusetext--false)
     - [instance.useBuffer = true](#instanceusebuffer--true)
     - [instance.serializeOctets = false](#instanceserializeoctets--false)
@@ -93,13 +92,12 @@ That's all you need to get started.  For the detailed API, continue reading belo
     - [SocketIOFileUpload.router](#socketiofileuploadrouter)
     - [instance.listen(socket)](#instancelistensocket)
     - [instance.abort(id, socket)](#instanceabortid-socket)
-    - [instance.pause()](#instancepause)
     - [instance.dir = "/path/to/upload/directory"](#instancedir--pathtouploaddirectory)
     - [instance.mode = "0666"](#instancemode--0666)
     - [instance.maxFileSize = null](#instancemaxfilesize--null-1)
     - [instance.emitChunkFail = false](#instanceemitchunkfail--false)
+    - [instance.uploadValidator(event, callback)](#instanceuploadvalidatorevent-callback)
 - [Server-Side Events](#events-1)
-    - [prestart](#prestart)
     - [start](#start-1)
     - [progress](#progress-1)
     - [complete](#complete-1)
@@ -281,10 +279,6 @@ The default value is 100 KiB, which is specified as
 
 Setting this parameter to 0 disables chunking of files.
 
-#### instance.chunkDelay = 0 ms
-
-The delay between reading chunks from the file.  Defaults to 0 ms, or no delay.  Set this to a larger number in order to put time between reading chunks, which might be useful for rate-limiting, for example.
-
 #### instance.useText = false
 
 Defaults to `false`, which reads files as an octet array.  This is necessary for binary-type files, like images.
@@ -348,8 +342,6 @@ This event is fired immediately following the `choose` event, but once per file.
 Part of the file has been loaded from the file system and ready to be transmitted via Socket.IO.  This event can be used to make an upload progress bar.
 
 You can compute the percent progress via `event.bytesLoaded / event.file.size`
-
-**TODO:** A better implementation would be for the server to confirm receipt of a chunk before emitting this event.  Feel free to submit a PR if the current implementation does not fit your needs.
 
 ##### Event Properties
 
@@ -442,40 +434,6 @@ uploader.on("start", function(event){
 });
 ```
 
-#### instance.pause()
-
-Pauses the uploader, preventing it from starting any new uploads.  Uploads that are already in progress, those that have emitted a "start" event, are not affected by causing instance.pause().
-
-It is save to call instance.pause() within the callback for the "prestart" event.
-
-Example use case: ensuring that a directory exists before the uploader attempts to create a new file in the directory.
-
-```javascript
-// on socket connection:
-var dir = "/path/to/uploads";
-uploader.dir = dir;
-uploader.pause();
-fs.stat(dir, function(err, result) {
-    if (err) {
-        // create directory...
-    } else {
-        uploader.unpause();
-    }
-});
-
-// on "prestart" event only:
-uploader.on("prestart", function() {
-    uploader.pause();
-    fs.stat(uploader.dir, function(err, result) {
-        if (err) {
-            // create directory...
-        } else {
-            uploader.unpause();
-        }
-    });
-});
-```
-
 #### instance.dir = "/path/to/upload/directory"
 
 If specified, the module will attempt to save uploaded files in this directory.  The module will intelligently suffix numbers to the uploaded filenames until name conflicts are resolved.  It will also sanitize the filename to help prevent attacks.
@@ -496,6 +454,24 @@ Note that the other events like "progress", "complete", and "saved" will still b
 
 Whether or not to emit an error event if a progress chunk fails to finish writing.  In most cases, the failure is a harmless notification that the file is larger than the internal buffer size, but it could also mean that the file upload triggered an ENOSPC error.  It may be useful to enable this error event if you are concerned about uploads running out of space.
 
+#### instance.uploadValidator(event, callback)
+
+Can be overridden to enable async validation and preparing.
+
+```javascript
+uploader.uploadValidator = function(event, callback){
+    fs.mkdtemp('/tmp/foo-', function(err, folder) {
+        if (err) {
+            callback( false ); // abort
+        }
+        else {
+            uploader.dir = folder;
+            callback( true ); // ready
+        }
+    });
+};
+```
+
 ### Events
 
 Instances of `SocketIOFileUpload` implement [Node's `EventEmitter` interface](http://nodejs.org/api/events.html#events_class_events_eventemitter).  This means that you can do:
@@ -506,12 +482,6 @@ Instances of `SocketIOFileUpload` implement [Node's `EventEmitter` interface](ht
 * et cetera.
 
 The events are documented below.
-
-#### prestart
-
-The client has requested for at least one file to be uploaded.
-
-This event has no properties, and its primary use is to put the uploader in a "paused" state (see the pause function for details).  Most users should tie into the "start" event instead.
 
 #### start
 
@@ -697,6 +667,5 @@ First, I'm aware that this module currently lacks unit tests (mocha, etc).  This
 In addition, the following features would be useful for the module to support.
 
 1. Allow input of a file URL rather than uploading a file from your computer or mobile device.
-2. Have the server confirm receipt of a chunk before firing the "progress" event on the client side.
 
 As always PRs are welcome.

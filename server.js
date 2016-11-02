@@ -66,14 +66,14 @@ function SocketIOFileUploadServer() {
 	 */
 	self.emitChunkFail = false;
 
-    /**
-     * Default validator.
-     * @param  {Object} event   Contains { file: fileInfo }
-     * @param  {function} callback   Call it with true to start upload, false to abort
-     */
-    self.uploadValidator = function(event, callback){
-        callback(true);
-    };
+	/**
+	 * Default validator.
+	 * @param  {Object} event   Contains { file: fileInfo }
+	 * @param  {function} callback   Call it with true to start upload, false to abort
+	 */
+	self.uploadValidator = function(event, callback){
+		callback(true);
+	};
 
 	var files = [];
 
@@ -263,14 +263,10 @@ function SocketIOFileUploadServer() {
 								memo: "self-thrown from progress event"
 							});
 						}
-                        else {
-                            // Emit that the chunk has been received, so client starts sending the next chunk
-                            socket.emit("siofu_chunk", { id: data.id })
-                        }
-
 					}
 				}
-
+				// Emit that the chunk has been received, so client starts sending the next chunk
+				socket.emit("siofu_chunk", { id: data.id });
 				self.emit("progress", {
 					file: fileInfo,
 					buffer: buffer
@@ -323,15 +319,15 @@ function SocketIOFileUploadServer() {
 				});
 			}
 			else {
-                self.uploadValidator({ file: fileInfo }, function( isValid ){
-                    if ( !isValid )
-                        self.abort( data.id, socket );
-                    else
-                        _serverReady(socket, data, fileInfo);
-                });
-            }
-        };
-    };
+				self.uploadValidator({ file: fileInfo }, function( isValid ){
+					if ( !isValid )
+						self.abort( data.id, socket );
+					else
+						_serverReady(socket, data, fileInfo);
+				});
+			}
+		};
+	};
 
     var _serverReady = function(socket, data, fileInfo){
 				// Find a filename and get the handler.  Then tell the client that

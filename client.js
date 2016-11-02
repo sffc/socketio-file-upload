@@ -65,7 +65,6 @@
 	self.serializedOctets = false;
 	self.useBuffer = true;
 	self.chunkSize = 1024 * 100; // 100kb default chunk size
-	self.chunkDelay = 0;
 
 	/**
 	 * Private method to dispatch a custom event on the instance.
@@ -193,11 +192,11 @@
 		}
 
 		// Load a "chunk" of the file from offset to offset+chunkSize.
-		// 
+		//
 		// Note that FileReader has its own "progress" event.  However,
 		// it has not proven to be reliable enough for production. See
 		// Stack Overflow question #16713386.
-		// 
+		//
 		// To compensate, we will manually load the file in chunks of a
 		// size specified by the user in the uploader.chunkSize property.
 		var processChunk = function () {
