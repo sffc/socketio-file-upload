@@ -53,13 +53,21 @@
 		throw new Error("Socket.IO File Upload: Browser Not Supported");
 	}
 
+	 if ( !window.siofu_global ) {
+		 window.siofu_global = {
+			 instances: 0,
+			 downloads: 0
+		 }
+	 }
+
 	// Private and Public Variables
 	var callbacks = {},
-		uploadedFiles = [],
-		chunkCallbacks = [],
-		readyCallbacks = [],
+		uploadedFiles = {},
+		chunkCallbacks = {},
+		readyCallbacks = {},
 		communicators = {};
-	self.fileInputElementId = "siofu_input";
+
+	self.fileInputElementId = "siofu_input_"+siofu_global.instances++;
 	self.resetFileInputs = true;
 	self.useText = false;
 	self.serializedOctets = false;
@@ -130,13 +138,13 @@
 
 		// Scope variables
 		var reader = new FileReader(),
-			id = uploadedFiles.length,
+			id = siofu_global.downloads++,
 			uploadComplete = false,
 			useText = self.useText,
 			offset = 0,
 			newName;
 		if (reader._realReader) reader = reader._realReader; // Support Android Crosswalk
-		uploadedFiles.push(file);
+		uploadedFiles[id] = file;
 
 		// An object for the outside to use to communicate with us
 		var communicator = { id: id };
@@ -279,8 +287,8 @@
 			if ( !uploadComplete )
 				processChunk();
 		};
-		readyCallbacks.push(readyCallback);
-		chunkCallbacks.push(chunkCallback);
+		readyCallbacks[id] = readyCallback;
+		chunkCallbacks[id] = chunkCallback;
 
 		return communicator;
 	};
@@ -573,25 +581,31 @@
 	// CONSTRUCTOR: Listen to the "complete", "ready", and "error" messages
 	// on the socket.
 	_listenTo(socket, "siofu_chunk", function(data){
-		chunkCallbacks[data.id]();
+		if ( readyCallbacks[data.id] )
+			chunkCallbacks[data.id]();
 	});
 	_listenTo(socket, "siofu_ready", function (data) {
-		readyCallbacks[data.id](data.name);
+		if ( readyCallbacks[data.id] )
+			readyCallbacks[data.id](data.name);
 	});
 	_listenTo(socket, "siofu_complete", function (data) {
-		_dispatch("complete", {
-			file: uploadedFiles[data.id],
-			detail: data.detail,
-			success: data.success
-		});
+		if ( uploadedFiles[data.id] ) {
+			_dispatch("complete", {
+				file: uploadedFiles[data.id],
+				detail: data.detail,
+				success: data.success
+			});
+		}
 	});
 	_listenTo(socket, "siofu_error", function (data) {
-		_dispatch("error", {
-			file: uploadedFiles[data.id],
-			message: data.message,
-			code: 0
-		});
-		communicators[data.id].abort = true;
+		if ( uploadedFiles[data.id] ) {
+			_dispatch("error", {
+				file: uploadedFiles[data.id],
+				message: data.message,
+				code: 0
+			});
+			communicators[data.id].abort = true;
+		}
 	});
  }
 }));
