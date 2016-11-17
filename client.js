@@ -58,6 +58,7 @@
 	self.fileInputElementId = "siofu_input";
 	self.resetFileInputs = true;
 	self.useText = false;
+    self.useHashedNames = false;
 	self.serializedOctets = false;
 	self.useBuffer = true;
 	self.chunkSize = 1024 * 100; // 100kb default chunk size
@@ -105,9 +106,167 @@
 	/**
 	 * Private closure for the _load function.
 	 * @param  {File} file A W3C File object
+	 * @param next Callback
 	 * @return {void}
 	 */
-	var _loadOne = function (file) {
+	var _loadOne = function (file, next) {
+
+        var processFileUpload = function() {
+            // Scope variables
+            var reader = new FileReader(),
+                id = uploadedFiles.length,
+                useText = self.useText,
+                offset = 0,
+                newName;
+            if (reader._realReader) reader = reader._realReader; // Support Android Crosswalk
+
+            uploadedFiles.push(file);
+
+            // An object for the outside to use to communicate with us
+            var communicator = {id: id};
+
+            // Calculate chunk size
+            var chunkSize = self.chunkSize;
+            if (chunkSize >= file.size || chunkSize <= 0) chunkSize = file.size;
+
+            // Private function to handle transmission of file data
+            var transmitPart = function (start, end, content) {
+                var isBase64 = false;
+                if (!useText) {
+                    try {
+                        var uintArr = new Uint8Array(content);
+
+                        // Support the transmission of serialized ArrayBuffers
+                        // for experimental purposes, but default to encoding the
+                        // transmission in Base 64.
+                        if (self.serializedOctets) {
+                            content = uintArr;
+                        }
+                        else if (self.useBuffer) {
+                            content = uintArr.buffer;
+                        }
+                        else {
+                            isBase64 = true;
+                            content = _uint8ArrayToBase64(uintArr);
+                        }
+                    }
+                    catch (error) {
+                        socket.emit("siofu_done", {
+                            id: id,
+                            interrupt: true
+                        });
+                        return;
+                    }
+                }
+                socket.emit("siofu_progress", {
+                    id: id,
+                    size: file.size,
+                    start: start,
+                    end: end,
+                    content: content,
+                    base64: isBase64
+                });
+            };
+
+            // Callback when tranmission is complete.
+            var transmitDone = function () {
+                socket.emit("siofu_done", {
+                    id: id
+                });
+            };
+
+            // Load a "chunk" of the file from offset to offset+chunkSize.
+            //
+            // Note that FileReader has its own "progress" event.  However,
+            // it has not proven to be reliable enough for production. See
+            // Stack Overflow question #16713386.
+            //
+            // To compensate, we will manually load the file in chunks of a
+            // size specified by the user in the uploader.chunkSize property.
+            var processChunk = function () {
+                // Abort if we are told to do so.
+                if (communicator.abort) return;
+
+                var chunk = file.slice(offset, Math.min(offset + chunkSize, file.size));
+                if (useText) {
+                    reader.readAsText(chunk);
+                }
+                else {
+                    reader.readAsArrayBuffer(chunk);
+                }
+            };
+
+            // Callback for when the reader has completed a load event.
+            var loadCb = function (event) {
+                // Abort if we are told to do so.
+                if (communicator.abort) return;
+
+                // Transmit the newly loaded data to the server and emit a client event
+                var bytesLoaded = Math.min(offset + chunkSize, file.size);
+                transmitPart(offset, bytesLoaded, event.target.result);
+                _dispatch("progress", {
+                    file: file,
+                    bytesLoaded: bytesLoaded,
+                    name: newName
+                });
+
+                // Get ready to send the next chunk
+                offset += chunkSize;
+                if (offset < file.size) {
+                    // Read in the next chunk
+                    setTimeout(processChunk, self.chunkDelay);
+                }
+                else {
+                    // All done!
+                    transmitDone();
+                    _dispatch("load", {
+                        file: file,
+                        reader: reader,
+                        name: newName
+                    });
+                }
+            };
+            _listenTo(reader, "load", loadCb);
+
+            // Listen for an "error" event.  Stop the transmission if one is received.
+            _listenTo(reader, "error", function () {
+                socket.emit("siofu_done", {
+                    id: id,
+                    interrupt: true
+                });
+                _stopListeningTo(reader, "load", loadCb);
+            });
+
+            // Do the same for the "abort" event.
+            _listenTo(reader, "abort", function () {
+                socket.emit("siofu_done", {
+                    id: id,
+                    interrupt: true
+                });
+                _stopListeningTo(reader, "load", loadCb);
+            });
+
+            // Transmit the "start" message to the server.
+            socket.emit("siofu_start", {
+                name: file.processedName,
+                mtime: file.lastModified,
+                meta: file.meta,
+                size: file.size,
+                encoding: useText ? "text" : "octet",
+                id: id
+            });
+
+            // To avoid a race condition, we don't want to start transmitting to the
+            // server until the server says it is ready.
+            var readyCallback = function (_newName) {
+                newName = _newName;
+                processChunk();
+            };
+            readyCallbacks.push(readyCallback);
+
+            next(communicator);
+        };
+
 		// First check for file size
 		if (self.maxFileSize !== null && file.size > self.maxFileSize) {
 			_dispatch("error", {
@@ -125,158 +284,44 @@
 		});
 		if (!evntResult) return;
 
-		// Scope variables
-		var reader = new FileReader(),
-			id = uploadedFiles.length,
-			useText = self.useText,
-			offset = 0,
-			newName;
-		if (reader._realReader) reader = reader._realReader; // Support Android Crosswalk
-		uploadedFiles.push(file);
+        if (self.useHashedNames) {
+            var r = new FileReader();
 
-		// An object for the outside to use to communicate with us
-		var communicator = { id: id };
+            var readingOffset = 0;
+            var readingBlockSize = 1024 * 1024 * 10;
+            var hashingBlockSize = 1024 * 1024 * 1;
+            var hash = '';
+            var spark = new SparkMD5();
 
-		// Calculate chunk size
-		var chunkSize = self.chunkSize;
-		if (chunkSize >= file.size || chunkSize <= 0) chunkSize = file.size;
+            var readBlockAndHashIt = function() {
+                var fileBlock = file.slice(readingOffset, Math.min(readingOffset + hashingBlockSize, file.size));
+                r.readAsBinaryString(fileBlock);
+            };
 
-		// Private function to handle transmission of file data
-		var transmitPart = function (start, end, content) {
-			var isBase64 = false;
-			if (!useText) {
-				try {
-					var uintArr = new Uint8Array(content);
+            r.onload = function (e) {
+                spark.appendBinary(r.result);
+                var binary = spark.end(true);
+                spark.append(hash);
+                spark.appendBinary(binary);
+                hash = spark.end();
 
-					// Support the transmission of serialized ArrayBuffers
-					// for experimental purposes, but default to encoding the
-					// transmission in Base 64.
-					if (self.serializedOctets) {
-						content = uintArr;
-					}
-					else if (self.useBuffer) {
-						content = uintArr.buffer;
-					}
-					else {
-						isBase64 = true;
-						content = _uint8ArrayToBase64(uintArr);
-					}
-				}
-				catch (error) {
-					socket.emit("siofu_done", {
-						id: id,
-						interrupt: true
-					});
-					return;
-				}
-			}
-			socket.emit("siofu_progress", {
-				id: id,
-				size: file.size,
-				start: start,
-				end: end,
-				content: content,
-				base64: isBase64
-			});
-		}
+                readingOffset += readingBlockSize;
 
-		// Callback when tranmission is complete.
-		var transmitDone = function () {
-			socket.emit("siofu_done", {
-				id: id
-			});
-		}
+                if (readingOffset >= file.size) {
+                    file.processedName = hash + '.' + file.name.split('.').pop();
+                    return processFileUpload();
+                }
+                else {
+                    readBlockAndHashIt();
+                }
+            };
 
-		// Load a "chunk" of the file from offset to offset+chunkSize.
-		// 
-		// Note that FileReader has its own "progress" event.  However,
-		// it has not proven to be reliable enough for production. See
-		// Stack Overflow question #16713386.
-		// 
-		// To compensate, we will manually load the file in chunks of a
-		// size specified by the user in the uploader.chunkSize property.
-		var processChunk = function () {
-			// Abort if we are told to do so.
-			if (communicator.abort) return;
-
-			var chunk = file.slice(offset, Math.min(offset+chunkSize, file.size));
-			if (useText) {
-				reader.readAsText(chunk);
-			}
-			else {
-				reader.readAsArrayBuffer(chunk);
-			}
-		}
-
-		// Callback for when the reader has completed a load event.
-		var loadCb = function (event) {
-			// Abort if we are told to do so.
-			if (communicator.abort) return;
-
-			// Transmit the newly loaded data to the server and emit a client event
-			var bytesLoaded = Math.min(offset+chunkSize, file.size);
-			transmitPart(offset, bytesLoaded, event.target.result);
-			_dispatch("progress", {
-				file: file,
-				bytesLoaded: bytesLoaded,
-				name: newName
-			});
-
-			// Get ready to send the next chunk
-			offset += chunkSize;
-			if (offset < file.size) {
-				// Read in the next chunk
-				setTimeout(processChunk, self.chunkDelay);
-			}
-			else {
-				// All done!
-				transmitDone();
-				_dispatch("load", {
-					file: file,
-					reader: reader,
-					name: newName
-				});
-			}
-		};
-		_listenTo(reader, "load", loadCb);
-
-		// Listen for an "error" event.  Stop the transmission if one is received.
-		_listenTo(reader, "error", function () {
-			socket.emit("siofu_done", {
-				id: id,
-				interrupt: true
-			});
-			_stopListeningTo(reader, "load", loadCb);
-		});
-
-		// Do the same for the "abort" event.
-		_listenTo(reader, "abort", function () {
-			socket.emit("siofu_done", {
-				id: id,
-				interrupt: true
-			});
-			_stopListeningTo(reader, "load", loadCb);
-		});
-
-		// Transmit the "start" message to the server.
-		socket.emit("siofu_start", {
-			name: file.name,
-			mtime: file.lastModified,
-			meta: file.meta,
-			size: file.size,
-			encoding: useText ? "text" : "octet",
-			id: id
-		});
-
-		// To avoid a race condition, we don't want to start transmitting to the
-		// server until the server says it is ready.
-		var readyCallback = function (_newName) {
-			newName = _newName;
-			processChunk();
-		};
-		readyCallbacks.push(readyCallback);
-
-		return communicator;
+            readBlockAndHashIt();
+        }
+        else {
+            file.processedName = file.name;
+            return processFileUpload();
+        }
 	};
 
 	/**
@@ -291,8 +336,9 @@
 		for (var i = 0; i < files.length; i++) {
 			// Evaluate each file in a closure, because we will need a new
 			// instance of FileReader for each file.
-			var communicator = _loadOne(files[i]);
-			communicators[communicator.id] = communicator;
+			_loadOne(files[i], function(communicator) {
+                communicators[communicator.id] = communicator;
+            });
 		}
 	};
 

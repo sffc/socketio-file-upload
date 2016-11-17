@@ -57,6 +57,19 @@ function SocketIOFileUploadServer() {
 	 * to the disk.  null = allow any file size
 	 */
 	self.maxFileSize = null;
+
+    /**
+     * Whether duplicate files must be uploaded with additional postfixes
+     * @type {boolean}
+     */
+    self.allowDuplicateFiles = true;
+
+    /**
+     * If file must be put to subdirectories with 2-char names to prevent
+     * big amounts of files in root folder, set as self.dir
+     * @type {boolean}
+     */
+    self.putToSubdirectories = false;
 	
 	/**
 	 * Whether or not to emit an error event if a progress chunk fails to
@@ -96,7 +109,6 @@ function SocketIOFileUploadServer() {
 	 * an empty file is found.
 	 * @param  {String}   ext   File extension
 	 * @param  {String}   base  File base name
-	 * @param  {Date}     mtime File modified time
 	 * @param  {Number}   inc   Current number to suffix the base name.  Pass -1
 	 *                          to not suffix a number to the base name.
 	 * @param  {Function} next  Callback function when the save is complete.
@@ -106,10 +118,25 @@ function SocketIOFileUploadServer() {
 	 */
 	var _findFileNameWorker = function (ext, base, inc, next) {
 		var newBase = (inc === -1) ? base : base + "-" + inc;
-		var pathName = path.join(self.dir, newBase + ext);
+        self.dir = self.dir.replace(/\/+$/, '');
+        var dirToSave = self.dir;
+        if (newBase.length >= 4 && self.putToSubdirectories) {
+            var dirPrefix1 = '/' + newBase.substring(0, 2);
+            var dirPrefix2 = '/' + newBase.substring(2, 4);
+            mkdirSync(self.dir + dirPrefix1);
+            mkdirSync(self.dir + dirPrefix1 + dirPrefix2);
+            dirToSave = self.dir + dirPrefix1 + dirPrefix2;
+        }
+		var pathName = path.join(dirToSave, newBase + ext);
 		fs.exists(pathName, function (exists) {
 			if (exists) {
-				_findFileNameWorker(ext, base, inc + 1, next);
+                if (self.allowDuplicateFiles) {
+                    _findFileNameWorker(ext, base, inc + 1, next);
+                }
+                else {
+                    next(new Error("duplicate files"));
+                    return;
+                }
 			}
 			else {
 				fs.open(pathName, "w", self.mode, function (err, fd) {
@@ -562,3 +589,11 @@ SocketIOFileUploadServer.router = function (req, res, next) {
 
 // Export the object.
 module.exports = SocketIOFileUploadServer;
+
+var mkdirSync = function (path) {
+    try {
+        fs.mkdirSync(path);
+    } catch(e) {
+        if ( e.code != 'EEXIST' ) throw e;
+    }
+}
