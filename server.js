@@ -116,7 +116,7 @@ function SocketIOFileUploadServer() {
 	 *                          final base name.
 	 * @return {void}
 	 */
-	var _findFileNameWorker = function (ext, base, inc, next) {
+	var _findFileNameWorker = function (ext, base, inc, next, fail) {
 		var newBase = (inc === -1) ? base : base + "-" + inc;
         self.dir = self.dir.replace(/\/+$/, '');
         var dirToSave = self.dir;
@@ -131,10 +131,10 @@ function SocketIOFileUploadServer() {
 		fs.exists(pathName, function (exists) {
 			if (exists) {
                 if (self.allowDuplicateFiles) {
-                    _findFileNameWorker(ext, base, inc + 1, next);
+                    _findFileNameWorker(ext, base, inc + 1, next, fail);
                 }
                 else {
-                    next(new Error("duplicate files"));
+                    if (fail) fail();
                     return;
                 }
 			}
@@ -158,7 +158,7 @@ function SocketIOFileUploadServer() {
 	 *                           text content.
 	 * @return {void}
 	 */
-	var _findFileName = function (fileInfo, next) {
+	var _findFileName = function (fileInfo, next, fail) {
 		// Strip dangerous characters from the file name
 		var filesafeName = fileInfo.name
 		.replace(/[\/\?<>\\:\*\|":]|[\x00-\x1f\x80-\x9f]|^\.+$/g, "_");
@@ -179,7 +179,7 @@ function SocketIOFileUploadServer() {
 				}
 				next(null, newBase, pathName);
 			});
-		});
+		}, fail);
 	};
 
 	var _uploadDone = function (socket) {
@@ -420,7 +420,13 @@ function SocketIOFileUploadServer() {
 						_cleanupFile(data.id);
 						return;
 					}
-				});
+				}, function () {
+                    //_emitComplete(socket, data.id, false);
+                    socket.emit("siofu_error", {
+                        id: fileInfo.id,
+                        message: "duplicate files"
+                    });
+                });
 			}
 		};
 	};
@@ -431,7 +437,7 @@ function SocketIOFileUploadServer() {
 			fileInfo.writeStream.end();
 		}
 		delete files[id];
-	}
+	};
 
 	/**
 	 * Private function to handle a client disconnect event.
@@ -453,7 +459,7 @@ function SocketIOFileUploadServer() {
 				}
 			}
 		}
-	}
+	};
 
 	/**
 	 * Public method.  Listen to a Socket.IO socket for a file upload event
