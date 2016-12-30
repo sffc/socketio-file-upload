@@ -79,8 +79,12 @@ test("basic functionality", function (t) {
 	});
 });
 
+var windowCloseTimeout = null;
+window.keepWindowOpen = function() {
+	clearTimeout(windowCloseTimeout);
+}
 test("Print pass or fail on the screen", function (t) {
-	document.write((test.getHarness()._results.fail ? "FAIL" : "PASS") + ", closing window in 5 seconds");
+	document.write((test.getHarness()._results.fail ? "FAIL" : "PASS") + ", closing window in 5 seconds <a href='javascript:keepWindowOpen()'>(keep window open)</a>");
 	t.end();
-	setTimeout(window.close, 5000);
-})
+	windowCloseTimeout = setTimeout(window.close, 5000);
+});

@@ -13,6 +13,11 @@ module.exports = {
 
 		uploader.dir = "/tmp";
 
+		uploader.uploadValidator = function(event, next) {
+			console.log("Passing upload validator for " + event.file.name);
+			next(true);
+		}
+
 		return uploader;
 	},
 	listen: function(server, cb) {

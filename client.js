@@ -581,7 +581,7 @@
 	// CONSTRUCTOR: Listen to the "complete", "ready", and "error" messages
 	// on the socket.
 	_listenTo(socket, "siofu_chunk", function(data){
-		if ( readyCallbacks[data.id] )
+		if ( chunkCallbacks[data.id] )
 			chunkCallbacks[data.id]();
 	});
 	_listenTo(socket, "siofu_ready", function (data) {
@@ -604,7 +604,7 @@
 				message: data.message,
 				code: 0
 			});
-			communicators[data.id].abort = true;
+			if (communicators) communicators[data.id].abort = true;
 		}
 	});
  }

@@ -311,21 +311,21 @@ function SocketIOFileUploadServer() {
 				return;
 			}
 
-			// If we're not saving the file, we are ready to start receiving data now.
-			if (!self.dir) {
-				socket.emit("siofu_ready", {
-					id: data.id,
-					name: null
-				});
-			}
-			else {
-				self.uploadValidator({ file: fileInfo }, function( isValid ){
-					if ( !isValid )
-						self.abort( data.id, socket );
-					else
+			self.uploadValidator({ file: fileInfo }, function( isValid ){
+				if ( !isValid ) {
+					self.abort( data.id, socket );
+				} else {
+					// If we're not saving the file, we are ready to start receiving data now.
+					if (!self.dir) {
+						socket.emit("siofu_ready", {
+							id: data.id,
+							name: null
+						});
+					} else {
 						_serverReady(socket, data, fileInfo);
-				});
-			}
+					}
+				}
+			});
 		};
 	};
 
