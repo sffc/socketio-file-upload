@@ -274,6 +274,7 @@
 			meta: file.meta,
 			size: file.size,
 			encoding: useText ? "text" : "octet",
+			type: file.type,
 			id: id
 		});
 

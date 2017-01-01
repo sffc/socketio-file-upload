@@ -292,6 +292,7 @@ function SocketIOFileUploadServer() {
 				name: data.name,
 				mtime: new Date(data.mtime),
 				encoding: data.encoding,
+				type: data.type,
 				clientDetail: {},
 				meta: data.meta || {},
 				id: data.id,
