@@ -183,6 +183,7 @@ In order to work, this method requires a browser that supports the HTML5 drag-an
 
 Like `instance.listenOnInput(input)`, except instead of listening for the "change" event on the input element, listen for the "click" event of a button.
 
+##### When the submitButton is clicked, the "submit" event is dispatched. Also, when the file input changes, the "choose" event will be dispatched.
 JavaScript:
 
 ```javascript
@@ -324,6 +325,14 @@ The events are documented below.
 #### choose
 
 The user has chosen files to upload, through any of the channels you have implemented.  If you want to cancel the upload, make your callback return `false`.
+
+##### Event Properties
+
+* `event.files` an instance of a W3C FileList object
+
+#### submit
+
+This event is triggered on instance.listenOnSubmit() when the user has clicked the submit button. 
 
 ##### Event Properties
 
