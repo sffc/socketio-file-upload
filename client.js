@@ -358,7 +358,27 @@
 			_load(files);
 		}
 	};
+	/* added by Josan
+	* use this function when submit button is clicked
+	*/
+    var _fileSubmitCallback = function(files) {
+      if (files.length === 0) return;
 
+      // Ensure existence of meta property on each file
+      for (var i = 0; i < files.length; i++) {
+        if (!files[i].meta) files[i].meta = {};
+      }
+
+      // Dispatch the "submit" event
+      var evntResult = _dispatch("submit", {
+        files: files
+      });
+
+      // If the callback didn't return false, continue with the upload
+      if (evntResult) {
+        _load(files);
+      }
+    };
 	/**
 	 * Private function that serves as a callback on file input.
 	 * @param  {Event} event The file input change event
@@ -406,8 +426,15 @@
 	this.listenOnSubmit = function (submitButton, input) {
 		if (!input.files) return;
 		_listenTo(submitButton, "click", function () {
-			_baseFileSelectCallback(input.files);
+			_fileSubmitCallback(input.files);
 		}, false);
+		/* added by Josan
+		* to trigger a choose event when the input element has been changed
+		*/
+      _listenTo(input, "change", function(e) {
+        //dispatch Event
+        _dispatch("choose", { files: input.files });
+      });
 	};
 
 	/**
