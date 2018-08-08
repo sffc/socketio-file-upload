@@ -194,12 +194,12 @@ function SocketIOFileUploadServer() {
 							return;
 						}
 
+						_emitComplete(socket, data.id, fileInfo.success);
+						_cleanupFile(data.id);
 						// Emit the "saved" event to the server-side listeners
 						self.emit("saved", {
 							file: fileInfo
 						});
-						_emitComplete(socket, data.id, fileInfo.success);
-						_cleanupFile(data.id);
 					});
 				}
 				else {
