@@ -66,6 +66,6 @@ io.sockets.on("connection", function(socket){
 		}
 	});
 	siofuServer.dir = "uploads";
-	siofuServer.maxFileSize = 20000;
+	siofuServer.maxFileSize = 2000;
 	siofuServer.listen(socket);
 })
