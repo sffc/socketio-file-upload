@@ -460,15 +460,12 @@ Can be overridden to enable async validation and preparing.
 
 ```javascript
 uploader.uploadValidator = function(event, callback){
-    fs.mkdtemp('/tmp/foo-', function(err, folder) {
-        if (err) {
-            callback( false ); // abort
-        }
-        else {
-            uploader.dir = folder;
-            callback( true ); // ready
-        }
-    });
+    // asynchronous operations allowed here; when done,
+    if (/* success */) {
+        callback(true);
+    } else {
+        callback(false);
+    }
 };
 ```
 
@@ -513,6 +510,8 @@ The transmission of a file is complete.
 #### saved
 
 A file has been saved.  It is recommended that you check `event.file.success` to tell whether or not the file was saved without errors.
+
+In this event, you can safely move the saved file to a new location.
 
 ##### Event Properties
 
