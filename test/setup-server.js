@@ -26,13 +26,13 @@ module.exports = {
 	},
 	listen: function(server, cb) {
 		// Try the first time
-		var port = Math.floor(Math.random() * 65535);
+		var port = Math.floor(Math.random() * 63535 + 2000);
 		console.log("Attempting connection on port", port);
 		server.listen(port, "127.0.0.1", cb(port));
 
 		server.on("error", function(err){
 			// Try again
-			port = Math.floor(Math.random() * 65535);
+			port = Math.floor(Math.random() * 63535 + 2000);
 			console.log("Attempt failed. Attempting connection on port", port);
 			console.log("Error was:", err);
 			server.listen(port, "127.0.0.1", cb(port));

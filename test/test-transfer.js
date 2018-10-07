@@ -10,6 +10,15 @@ var http = require("http");
 var fs = require("fs");
 var ecstatic = require("ecstatic");
 var bufferEquals = require("buffer-equals");
+var path = require("path");
+var phantomRunner = require("./browser-phantom");
+
+function evtos(ev) {
+	return ev.file ? "[ev file=" + ev.file.name + "]" : "[ev]";
+}
+
+var mandrillContent = fs.readFileSync(path.join(__dirname, "assets", "mandrill.png"));
+var sonnet18Content = fs.readFileSync(path.join(__dirname, "assets", "sonnet18.txt"));
 
 test("test setup function", function (t) {
 	var requestHandler = ecstatic({
@@ -34,7 +43,7 @@ test("test setup function", function (t) {
 			t.equal(typeof uploader, "object", "uploader is an object");
 
 			uploader.on("start", function (ev) {
-				t.ok(!!ev.file, "file not in start event object");
+				t.ok(!!ev.file, "file not in start event object " + evtos(ev));
 				startFired++;
 			});
 
@@ -42,58 +51,76 @@ test("test setup function", function (t) {
 			uploader.on("progress", function (ev) {
 				if (!progressContent[ev.file.id]) progressContent[ev.file.id] = new Buffer([]);
 				progressContent[ev.file.id] = Buffer.concat([progressContent[ev.file.id], ev.buffer]);
-				t.ok(ev.buffer.length <= ev.file.size, "'progress' event");
+				t.ok(ev.buffer.length <= ev.file.size, "'progress' event " + evtos(ev));
 			});
 
 			uploader.on("complete", function (ev) {
-				t.ok(++completeFired <= startFired, "'complete' event has not fired too many times");
+				t.ok(++completeFired <= startFired, "'complete' event has not fired too many times " + evtos(ev));
 
-				t.ok(ev.file.success, "Successful upload");
+				t.ok(ev.file.success, "Successful upload " + evtos(ev));
 			});
 
 			// Currently the test hangs right here!
 
 			uploader.on("saved", function (ev) {
-				t.ok(++savedFired <= startFired, "'saved' event has not fired too many times");
-				t.ok(ev.file.success, "Successful save");
+				t.ok(++savedFired <= startFired, "'saved' event has not fired too many times " + evtos(ev));
+				t.ok(ev.file.success, "Successful save " + evtos(ev));
 
 				// Client-to-Server Metadata
-				t.equal(ev.file.meta.bar, "from-client", "client-to-server metadata correct");
+				t.equal(ev.file.meta.bar, "from-client", "client-to-server metadata correct " + evtos(ev));
 
 				// Server-to-Client Metadata
 				ev.file.clientDetail.foo = "from-server";
 
-				if (numSubmitted > 0 && savedFired >= numSubmitted) {
-					t.equal(completeFired, startFired, "'complete' event fired the right number of times");
-					t.equal(savedFired, startFired, "'saved' event fired the right number of times");
+				// Check for file equality
+				fs.readFile(ev.file.pathName, function(err, content){
+					t.error(err, "reading saved file " + evtos(ev));
 
-					// Check at least the final file for equality
-					fs.readFile(ev.file.pathName, function(err, content){
-						t.error(err, "reading saved file");
+					if (!bufferEquals(progressContent[ev.file.id], content)) {
+						t.fail("Saved file content is not the same as progress buffer " + evtos(ev));
+					} else {
+						t.pass("Saved file content is same as progress buffer " + evtos(ev));
+					}
 
-						if (!bufferEquals(progressContent[ev.file.id], content)) {
-							t.fail("Saved file content is not the same as progress buffer");
-						} else {
-							t.pass("Saved file content is same as progress buffer");
+					var fileContent = ev.file.name === "mandrill.png" ? mandrillContent : sonnet18Content;
+					if (!bufferEquals(fileContent, content)) {
+						t.fail("Saved file content is not the same as original file buffer " + evtos(ev));
+					} else {
+						t.pass("Saved file content is same as original file buffer " + evtos(ev));
+					}
+
+					// Clean up
+					fs.unlink(ev.file.pathName, function() {
+						if (numSubmitted > 0 && savedFired >= numSubmitted) {
+							t.equal(completeFired, startFired, "'complete' event fired the right number of times " + evtos(ev));
+							t.equal(savedFired, startFired, "'saved' event fired the right number of times " + evtos(ev));
+
+							// No more tests
+							server.close();
 						}
-
-						// No more tests
-						t.end();
-
-						// Clean up
-						fs.unlinkSync(ev.file.pathName);
-						server.close();
 					});
-				}
+				});
 			});
 
 			uploader.on("error", function (ev) {
-				t.fail("Error: " + ev.error);
-				t.end();
+				t.fail("Error: " + ev.error + " " + evtos(ev));
 			});
 
-
-			cp.spawn(chrome, [ "http://127.0.0.1:" + port ]);
+			if (process.env["X_USE_PHANTOM"]) {
+				// Headless test
+				phantomRunner(port, function(err) {
+					if (err) {
+						t.fail("Error: " + err);
+					}
+					t.end();
+				})
+			} else {
+				// Manual test
+				var child = cp.spawn(chrome, [ "http://127.0.0.1:" + port ]);
+				child.on("close", function() {
+					t.end();
+				});
+			}
 		};
 	});
 });

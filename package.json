@@ -16,9 +16,10 @@
     "concat-stream": "^1.5.0",
     "ecstatic": "^2.0.0",
     "eslint": "^5.6.1",
+    "phantom": "^6.0.3",
     "socket.io": "^2.1.1",
     "socket.io-client": "^2.1.1",
-    "tape": "^4.2.0"
+    "tape": "^4.9.0"
   },
   "files": [
     "client.js",

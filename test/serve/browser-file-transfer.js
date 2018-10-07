@@ -6,6 +6,9 @@ var test = require("tape");
 var SocketIoClient = require("socket.io-client");
 var SiofuClient = require("../../client.js");
 
+function evtos(ev) {
+	return ev.file ? "[ev file=" + ev.file.name + "]" : "[ev]";
+}
 
 test("basic functionality", function (t) {
 	var socket = new SocketIoClient();
@@ -31,6 +34,12 @@ test("basic functionality", function (t) {
 	t.ok(client.useBuffer, "instance.useBuffer defaults to true");
 	t.notOk(client.serializeOctets, "instance.serializeOctets defaults to false");
 
+	if (window._phantom) {
+		console.log("PHANTOMJS DETECTED: Disabling useBuffer now.");
+		// Seems to be a bug in PhantomJS
+		client.useBuffer = false;
+	}
+
 	t.pass("");
 	t.pass("SELECT FILES TO UPLOAD");
 
@@ -38,47 +47,48 @@ test("basic functionality", function (t) {
 
 	client.addEventListener("choose", function (ev) {
 		numSubmitted = ev.files.length;
-		t.ok(numSubmitted, "user just submitted " + numSubmitted + " files");
+		t.ok(numSubmitted, "user just submitted " + numSubmitted + " files " + evtos(ev));
 		socket.emit("numSubmitted", numSubmitted);
 
-		t.notOk(startFired, "'start' event must not have been fired yet");
-		t.notOk(loadFired, "'load' event must not have been fired yet");
-		t.notOk(progressFired, "'progress' event must not have been fired yet");
-		t.notOk(completeFired, "'complete' event must not have been fired yet");
+		t.notOk(startFired, "'start' event must not have been fired yet " + evtos(ev));
+		t.notOk(loadFired, "'load' event must not have been fired yet " + evtos(ev));
+		t.notOk(progressFired, "'progress' event must not have been fired yet " + evtos(ev));
+		t.notOk(completeFired, "'complete' event must not have been fired yet " + evtos(ev));
 	});
 
 	client.addEventListener("start", function (ev) {
-		t.ok(!!ev.file, "file not in start event object");
-		t.ok(++startFired <= numSubmitted, "'start' event has not fired too many times");
+		t.ok(!!ev.file, "file not in start event object " + evtos(ev));
+		t.ok(++startFired <= numSubmitted, "'start' event has not fired too many times " + evtos(ev));
 		// Client-to-Server Metadata
 		ev.file.meta.bar = "from-client";
 	});
 
 	client.addEventListener("load", function (ev) {
-		t.ok(!!ev.file, "file not in load event object");
-		t.ok(++loadFired <= numSubmitted, "'load' event has not fired too many times");
+		t.ok(!!ev.file, "file not in load event object " + evtos(ev));
+		t.ok(++loadFired <= numSubmitted, "'load' event has not fired too many times " + evtos(ev));
 	});
 
 	client.addEventListener("progress", function (ev) {
-		t.ok(ev.bytesLoaded <= ev.file.size, "'progress' size calculation");
+		t.ok(ev.bytesLoaded <= ev.file.size, "'progress' size calculation " + evtos(ev));
 	});
 
 	client.addEventListener("complete", function (ev) {
-		t.ok(++completeFired <= numSubmitted, "'complete' event has not fired too many times");
+		t.ok(++completeFired <= numSubmitted, "'complete' event has not fired too many times " + evtos(ev));
 
-		t.ok(ev.detail, "'complete' event has a 'detail' property");
-		t.ok(ev.success, "'complete' event was successful");
+		t.ok(ev.detail, "'complete' event has a 'detail' property " + evtos(ev));
+		t.ok(ev.success, "'complete' event was successful " + evtos(ev));
 
 		// Server-to-Client Metadata
-		t.equal(ev.detail.foo, "from-server", "server-to-client metadata correct");
+		t.equal(ev.detail.foo, "from-server", "server-to-client metadata correct " + evtos(ev));
 
 		if (completeFired >= numSubmitted) {
 
-			t.equal(startFired, numSubmitted, "'start' event fired the right number of times");
-			t.equal(loadFired, numSubmitted, "'load' event fired the right number of times");
-			t.equal(completeFired, numSubmitted, "'complete' event fired the right number of times");
+			t.equal(startFired, numSubmitted, "'start' event fired the right number of times " + evtos(ev));
+			t.equal(loadFired, numSubmitted, "'load' event fired the right number of times " + evtos(ev));
+			t.equal(completeFired, numSubmitted, "'complete' event fired the right number of times " + evtos(ev));
 
 			client.destroy();
+			socket.disconnect();
 			t.end();
 		}
 	});
@@ -90,12 +100,10 @@ test("basic functionality", function (t) {
 	});
 });
 
-var windowCloseTimeout = null;
-window.keepWindowOpen = function() {
-	clearTimeout(windowCloseTimeout);
-};
-test("Print pass or fail on the screen", function (t) {
-	document.write((test.getHarness()._results.fail ? "FAIL" : "PASS") + ", closing window in 5 seconds <a href='javascript:keepWindowOpen()'>(keep window open)</a>");
-	t.end();
-	windowCloseTimeout = setTimeout(window.close, 5000);
+test.onFailure(function() {
+	alert("Test failed; see log for details");
+});
+
+test.onFinish(function() {
+	alert("done: Test complete; you may close your window");
 });

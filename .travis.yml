@@ -1,7 +1,8 @@
 language: node_js
 node_js:
-  - "6"
+  - "8"
 install:
   - npm install
 script:
+  - X_USE_PHANTOM=1 npm test
   - npm run lint
