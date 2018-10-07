@@ -9,6 +9,11 @@ Since version 0.4, this module also supports monitoring file upload progress.
 
 The module is released under the X11 open-source license.
 
+[![Build Status](https://travis-ci.org/sffc/socketio-file-upload.svg?branch=master)](https://travis-ci.org/sffc/socketio-file-upload)
+[![Known Vulnerabilities](https://snyk.io/test/github/sffc/socketio-file-upload/badge.svg)](https://snyk.io/test/github/sffc/socketio-file-upload)
+[![npm version](http://img.shields.io/npm/v/socketio-file-upload.svg?style=flat)](https://npmjs.org/package/socketio-file-upload "View this project on npm")
+
+
 ## Quick Start
 
 Navigate to your project directory and run:
