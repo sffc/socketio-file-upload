@@ -26,6 +26,8 @@
  * from the authors or copyright holders.
  */
 
+/* eslint-env node */
+
 // Require Libraries
 var util = require("util"),
 	EventEmitter = require("events").EventEmitter,
@@ -141,7 +143,7 @@ function SocketIOFileUploadServer() {
 	var _findFileName = function (fileInfo, next) {
 		// Strip dangerous characters from the file name
 		var filesafeName = fileInfo.name
-		.replace(/[\/\?<>\\:\*\|":]|[\x00-\x1f\x80-\x9f]|^\.+$/g, "_");
+			.replace(/[\/\?<>\\:\*\|":]|[\x00-\x1f\x80-\x9f]|^\.+$/g, "_"); // eslint-disable-line no-control-regex, no-useless-escape
 
 		var ext = path.extname(filesafeName);
 		var base = path.basename(filesafeName, ext);
@@ -188,8 +190,9 @@ function SocketIOFileUploadServer() {
 						if (err) {
 							fileInfo.success = false;
 							_emitComplete(socket, data.id, fileInfo.success);
-							console.log("SocketIOFileUploadServer Error (_uploadDone fs.utimes):");
-							console.log(err);
+							// TODO: We should probably propagate the error out to the user here.
+							console.log("SocketIOFileUploadServer Error (_uploadDone fs.utimes):"); // eslint-disable-line no-console
+							console.log(err); // eslint-disable-line no-console
 							_cleanupFile(data.id);
 							return;
 						}
@@ -208,8 +211,9 @@ function SocketIOFileUploadServer() {
 				}
 			}
 			catch (err) {
-				console.log("SocketIOFileUploadServer Error (_uploadDone):");
-				console.log(err);
+				// TODO: We should probably propagate the error out to the user here.
+				console.log("SocketIOFileUploadServer Error (_uploadDone):"); // eslint-disable-line no-console
+				console.log(err); // eslint-disable-line no-console
 			}
 
 			// Emit the "complete" event to the server-side listeners
@@ -241,7 +245,7 @@ function SocketIOFileUploadServer() {
 				fileInfo.size = data.size;
 				fileInfo.bytesLoaded += buffer.length;
 				if (self.maxFileSize !== null
-				 && fileInfo.bytesLoaded > self.maxFileSize) {
+						&& fileInfo.bytesLoaded > self.maxFileSize) {
 					fileInfo.success = false;
 					socket.emit("siofu_error", {
 						id: data.id,
@@ -273,8 +277,9 @@ function SocketIOFileUploadServer() {
 				});
 			}
 			catch (err) {
-				console.log("SocketIOFileUploadServer Error (_uploadProgress):");
-				console.log(err);
+				// TODO: We should probably propagate the error out to the user here.
+				console.log("SocketIOFileUploadServer Error (_uploadProgress):"); // eslint-disable-line no-console
+				console.log(err); // eslint-disable-line no-console
 			}
 		};
 	};
@@ -329,6 +334,8 @@ function SocketIOFileUploadServer() {
 		};
 	};
 
+	// The indentation got messed up here, but changing it would make git history less useful.
+	/* eslint-disable indent */
     var _serverReady = function(socket, data, fileInfo){
 				// Find a filename and get the handler.  Then tell the client that
 				// we're ready to start receiving data.
@@ -396,6 +403,7 @@ function SocketIOFileUploadServer() {
 					}
 				});
 	};
+	/* eslint-enable indent */
 
 	var _cleanupFile = function (id) {
 		var fileInfo = files[id];
@@ -403,14 +411,14 @@ function SocketIOFileUploadServer() {
 			fileInfo.writeStream.end();
 		}
 		delete files[id];
-	}
+	};
 
 	/**
 	 * Private function to handle a client disconnect event.
 	 * @param  {Socket} socket The socket on which the listener is bound
 	 * @return {Function} A function compatible with a Socket.IO callback
 	 */
-	var _onDisconnect = function (socket) {
+	var _onDisconnect = function (socket) { // eslint-disable-line no-unused-vars
 		return function () {
 			for (var id in files) {
 				if (files.hasOwnProperty(id)) {
@@ -424,8 +432,8 @@ function SocketIOFileUploadServer() {
 					return;
 				}
 			}
-		}
-	}
+		};
+	};
 
 	/**
 	 * Public method.  Listen to a Socket.IO socket for a file upload event
@@ -465,7 +473,7 @@ function SocketIOFileUploadServer() {
 			message: "File upload aborted by server"
 		});
 		_cleanupFile(id);
-	}
+	};
 }
 util.inherits(SocketIOFileUploadServer, EventEmitter);
 

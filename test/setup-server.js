@@ -1,3 +1,7 @@
+/* eslint linebreak-style: ["error", "windows"] */
+/* eslint-disable no-console */
+/* eslint-env node */
+
 var SocketIo = require("socket.io");
 var SiofuServer = require("../server.js");
 
@@ -16,7 +20,7 @@ module.exports = {
 		uploader.uploadValidator = function(event, next) {
 			console.log("Passing upload validator for " + event.file.name);
 			next(true);
-		}
+		};
 
 		return uploader;
 	},
@@ -30,6 +34,7 @@ module.exports = {
 			// Try again
 			port = Math.floor(Math.random() * 65535);
 			console.log("Attempt failed. Attempting connection on port", port);
+			console.log("Error was:", err);
 			server.listen(port, "127.0.0.1", cb(port));
 		});
 	}

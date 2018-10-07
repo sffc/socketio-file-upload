@@ -26,6 +26,9 @@
  * from the authors or copyright holders.
  */
 
+// Do not check function indentation because this is intentionally ignored in order to preserve history in git.
+/* eslint-disable indent */
+
 /**
  * A client-side JavaScript object to handle file uploads to a Node.JS server
  * via Socket.IO.
@@ -33,15 +36,17 @@
  * @param {SocketIO} socket The current Socket.IO connection.
  */
 (function (scope, name, factory) {
+	/* eslint-disable no-undef */
 	if (typeof define === "function" && define.amd) {
 		define([], factory);
 	}
-	else if (typeof module === 'object' && module.exports) {
+	else if (typeof module === "object" && module.exports) {
 		module.exports = factory();
 	}
 	else {
 		scope[name] = factory();
 	}
+	/* eslint-enable no-undef */
 }(this, "SocketIOFileUpload", function () {
  return function (socket) {
 	"use strict";
@@ -53,12 +58,12 @@
 		throw new Error("Socket.IO File Upload: Browser Not Supported");
 	}
 
-	 if ( !window.siofu_global ) {
-		 window.siofu_global = {
-			 instances: 0,
-			 downloads: 0
-		 }
-	 }
+	if ( !window.siofu_global ) {
+		window.siofu_global = {
+			instances: 0,
+			downloads: 0
+		};
+	}
 
 	// Private and Public Variables
 	var callbacks = {},
@@ -67,7 +72,7 @@
 		readyCallbacks = {},
 		communicators = {};
 
-	self.fileInputElementId = "siofu_input_"+siofu_global.instances++;
+	self.fileInputElementId = "siofu_input_"+window.siofu_global.instances++;
 	self.resetFileInputs = true;
 	self.useText = false;
 	self.serializedOctets = false;
@@ -109,7 +114,7 @@
 	var _stopListening = function () {
 		for (var i = _listenedReferences.length - 1; i >= 0; i--) {
 			_stopListeningTo.apply(this, _listenedReferences[i]);
-		};
+		}
 		_listenedReferences = [];
 	};
 
@@ -138,7 +143,7 @@
 
 		// Scope variables
 		var reader = new FileReader(),
-			id = siofu_global.downloads++,
+			id = window.siofu_global.downloads++,
 			uploadComplete = false,
 			useText = self.useText,
 			offset = 0,
@@ -190,14 +195,14 @@
 				content: content,
 				base64: isBase64
 			});
-		}
+		};
 
 		// Callback when tranmission is complete.
 		var transmitDone = function () {
 			socket.emit("siofu_done", {
 				id: id
 			});
-		}
+		};
 
 		// Load a "chunk" of the file from offset to offset+chunkSize.
 		//
@@ -218,7 +223,7 @@
 			else {
 				reader.readAsArrayBuffer(chunk);
 			}
-		}
+		};
 
 		// Callback for when the reader has completed a load event.
 		var loadCb = function (event) {
@@ -371,8 +376,10 @@
 
 		if (self.resetFileInputs) {
 			try {
-					event.target.value = ""; //for IE11, latest Chrome/Firefox/Opera...
-			} catch(err) {}
+				event.target.value = ""; //for IE11, latest Chrome/Firefox/Opera...
+			} catch(err) {
+				// ignore
+			}
 			if (event.target.value) { //for IE5 ~ IE10
 				var form = document.createElement("form"),
 				parentNode = event.target.parentNode, ref = event.target.nextSibling;
@@ -607,5 +614,5 @@
 			if (communicators) communicators[data.id].abort = true;
 		}
 	});
- }
+ };
 }));

@@ -1,4 +1,8 @@
-var test = require("tape")
+/* eslint linebreak-style: ["error", "windows"] */
+/* eslint-disable no-console */
+/* eslint-env node */
+
+var test = require("tape");
 var SocketIOFileUpload = require("../server.js");
 var http = require("http");
 var fs = require("fs");
@@ -15,7 +19,7 @@ function serveClientCb(t, server) {
 				path: "/siofu/client.js"
 			}, function (res) {
 				var clientJsPath = path.join(__dirname, "../client.min.js");
-				var clientJsStr = fs.readFileSync(clientJsPath, { encoding: 'utf8' });
+				var clientJsStr = fs.readFileSync(clientJsPath, { encoding: "utf8" });
 				res.pipe(concatStream({ encoding: "string" }, function (resString) {
 					t.equal(clientJsStr, resString, "client.min.js is being served");
 					server.close(function (err) {

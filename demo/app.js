@@ -1,16 +1,20 @@
-var http = require('http'),
-	url = require('url'),
-	path = require('path'),
-	mime = require('mime'),
-	path = require('path'),
-	fs = require('fs'),
-	SocketIOFileUploadServer = require('../server'),
-	socketio = require('socket.io'),
-	express = require('express');
+/* eslint-env node */
+/* eslint-disable no-console */
+
+var http = require("http"),
+	url = require("url"),
+	path = require("path"),
+	mime = require("mime"),
+	fs = require("fs"),
+	SocketIOFileUploadServer = require("../server"),
+	socketio = require("socket.io"),
+	express = require("express");
+
+var app, io;
  
 // Simple Static File Server.  Used under the terms of the BSD license.
 //   http://classes.engineering.wustl.edu/cse330/index.php/Node.JS
-var app = http.createServer(function(req, resp){
+app = http.createServer(function(req, resp){
 	var filename = path.join(__dirname, "public_html", url.parse(req.url).pathname);
 	(fs.exists || path.exists)(filename, function(exists){
 		if (exists) {
@@ -41,12 +45,12 @@ var app = http.createServer(function(req, resp){
 //io = socketio.listen(app);
 //SocketIOFileUploadServer.listen(app);
 
-var app = express()
+app = express()
 	.use(SocketIOFileUploadServer.router)
 	.use(express.static(__dirname + "/out"))
 	.use(express.static(__dirname + "/public_html"))
 	.listen(4567);
-var io = socketio.listen(app);
+io = socketio.listen(app);
 console.log("Listening on port 4567");
 
 io.sockets.on("connection", function(socket){
@@ -68,4 +72,4 @@ io.sockets.on("connection", function(socket){
 	siofuServer.dir = "uploads";
 	siofuServer.maxFileSize = 2000;
 	siofuServer.listen(socket);
-})
+});

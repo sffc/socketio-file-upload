@@ -1,5 +1,9 @@
+/* eslint linebreak-style: ["error", "windows"] */
+/* eslint-disable no-console */
+/* eslint-env node */
+
 var test = require("tape");
-var setup = require("./setup-server.js")
+var setup = require("./setup-server.js");
 var chrome = require("chrome-location");
 var cp = require("child_process");
 var http = require("http");
@@ -11,7 +15,7 @@ test("test setup function", function (t) {
 	var requestHandler = ecstatic({
 		root: __dirname + "/serve",
 		cache: 0
-	})
+	});
 	var server = http.createServer(requestHandler);
 	setup.listen(server, function(port){
 		return function(){
@@ -30,6 +34,7 @@ test("test setup function", function (t) {
 			t.equal(typeof uploader, "object", "uploader is an object");
 
 			uploader.on("start", function (ev) {
+				t.ok(!!ev.file, "file not in start event object");
 				startFired++;
 			});
 
@@ -54,8 +59,8 @@ test("test setup function", function (t) {
 				t.ok(ev.file.success, "Successful save");
 
 				if (numSubmitted > 0 && savedFired >= numSubmitted) {
-					t.equal(completeFired, startFired, "'complete' event fired the right number of times")
-					t.equal(savedFired, startFired, "'saved' event fired the right number of times");;
+					t.equal(completeFired, startFired, "'complete' event fired the right number of times");
+					t.equal(savedFired, startFired, "'saved' event fired the right number of times");
 
 					// Check at least the final file for equality
 					fs.readFile(ev.file.pathName, function(err, content){
@@ -84,6 +89,6 @@ test("test setup function", function (t) {
 
 
 			cp.spawn(chrome, [ "http://127.0.0.1:" + port ]);
-		}
-	})
+		};
+	});
 });

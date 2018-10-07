@@ -1,3 +1,7 @@
+/* eslint-env amd, jquery */
+/* eslint-disable no-console */
+/* global requirejs */
+
 requirejs.config({
 	paths: {
 		"SocketIOFileUpload": "/siofu/client",
@@ -22,6 +26,7 @@ require(["socket.io", "SocketIOFileUpload"], function (io, SocketIOFileUpload) {
 	}
 
 	// non-jQuery version
+	// eslint-disable-next-line no-redeclare
 	function flash(message){
 		(function(message){
 			var flsh = document.createElement("div");

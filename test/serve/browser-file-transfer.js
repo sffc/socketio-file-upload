@@ -1,3 +1,7 @@
+/* eslint linebreak-style: ["error", "windows"] */
+/* eslint-disable no-console */
+/* eslint-env node */
+
 var test = require("tape");
 var SocketIoClient = require("socket.io-client");
 var SiofuClient = require("../../client.js");
@@ -44,10 +48,12 @@ test("basic functionality", function (t) {
 	});
 
 	client.addEventListener("start", function (ev) {
+		t.ok(!!ev.file, "file not in start event object");
 		t.ok(++startFired <= numSubmitted, "'start' event has not fired too many times");
-	})
+	});
 
 	client.addEventListener("load", function (ev) {
+		t.ok(!!ev.file, "file not in load event object");
 		t.ok(++loadFired <= numSubmitted, "'load' event has not fired too many times");
 	});
 
@@ -82,7 +88,7 @@ test("basic functionality", function (t) {
 var windowCloseTimeout = null;
 window.keepWindowOpen = function() {
 	clearTimeout(windowCloseTimeout);
-}
+};
 test("Print pass or fail on the screen", function (t) {
 	document.write((test.getHarness()._results.fail ? "FAIL" : "PASS") + ", closing window in 5 seconds <a href='javascript:keepWindowOpen()'>(keep window open)</a>");
 	t.end();
