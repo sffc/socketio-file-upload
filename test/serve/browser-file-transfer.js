@@ -50,6 +50,8 @@ test("basic functionality", function (t) {
 	client.addEventListener("start", function (ev) {
 		t.ok(!!ev.file, "file not in start event object");
 		t.ok(++startFired <= numSubmitted, "'start' event has not fired too many times");
+		// Client-to-Server Metadata
+		ev.file.meta.bar = "from-client";
 	});
 
 	client.addEventListener("load", function (ev) {

@@ -57,6 +57,9 @@ test("test setup function", function (t) {
 				t.ok(++savedFired <= startFired, "'saved' event has not fired too many times");
 				t.ok(ev.file.success, "Successful save");
 
+				// Client-to-Server Metadata
+				t.equal(ev.file.meta.bar, "from-client", "client-to-server metadata correct");
+
 				// Server-to-Client Metadata
 				ev.file.clientDetail.foo = "from-server";
 
