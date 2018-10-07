@@ -198,13 +198,15 @@ function SocketIOFileUploadServer() {
 						}
 
 						// The order here matters:
-						// _cleanupFile needs to be before server-side "saved" event such that the "saved" event can move the file (see #62)
+						// _cleanupFile1 needs to be before server-side "saved" event such that the "saved" event can move the file (see #62)
 						// The server-side "saved" event needs to be before _emitComplete so that clientDetail can be edited (see #82)
-						_cleanupFile(data.id);
+						// _emitComplete needs to happen before _cleanupFile2 so that the file info object is still valid
+						_cleanupFile1(data.id);
 						self.emit("saved", {
 							file: fileInfo
 						});
 						_emitComplete(socket, data.id, fileInfo.success);
+						_cleanupFile2(data.id);
 					});
 				}
 				else {
@@ -414,6 +416,18 @@ function SocketIOFileUploadServer() {
 		}
 		delete files[id];
 	};
+
+	// _cleanupFile1() followed by _cleanupFile2() is equivalent to _cleanupFile()
+	var _cleanupFile1 = function (id) {
+		var fileInfo = files[id];
+		if (fileInfo.writeStream) {
+			fileInfo.writeStream.end();
+		}
+	}
+	var _cleanupFile2 = function (id) {
+		var fileInfo = files[id];
+		delete files[id];
+	}
 
 	/**
 	 * Private function to handle a client disconnect event.
