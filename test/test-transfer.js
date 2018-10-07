@@ -94,9 +94,6 @@ test("test setup function", function (t) {
 						if (numSubmitted > 0 && savedFired >= numSubmitted) {
 							t.equal(completeFired, startFired, "'complete' event fired the right number of times " + evtos(ev));
 							t.equal(savedFired, startFired, "'saved' event fired the right number of times " + evtos(ev));
-
-							// No more tests
-							server.close();
 						}
 					});
 				});
@@ -112,12 +109,17 @@ test("test setup function", function (t) {
 					if (err) {
 						t.fail("Error: " + err);
 					}
+
+					// No more tests
+					server.close();
 					t.end();
-				})
+				});
 			} else {
 				// Manual test
 				var child = cp.spawn(chrome, [ "http://127.0.0.1:" + port ]);
 				child.on("close", function() {
+					// No more tests
+					server.close();
 					t.end();
 				});
 			}

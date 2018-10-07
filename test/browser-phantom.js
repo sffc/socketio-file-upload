@@ -1,6 +1,10 @@
 #!/usr/bin/env node
 // Automation for the browser side of the test using PhantomJS.
 
+/* eslint-disable no-console */
+
+"use strict";
+
 const phantom = require("phantom");
 const path = require("path");
 const sleep = require("util").promisify(setTimeout);
@@ -30,7 +34,7 @@ async function run(port) {
 			clientError = new Error(message + "\n\n" + traceString + "\n\n");
 		}
 	});
-	await page.on("onAlert", function(message, trace) {
+	await page.on("onAlert", function(message) {
 		if (message.substr(0, 5) === "done:") {
 			clientDone = true;
 		} else if (!clientFailure) {
@@ -39,12 +43,16 @@ async function run(port) {
 	});
 
 	const status = await page.open("http://127.0.0.1:" + port);
+	if (status !== "success") {
+		await instance.exit();
+		return new Error("Not able to load test page: " + status);
+	}
 	await page.uploadFile("#file-picker", [
 		path.join(__dirname, "assets", "mandrill.png"),
 		path.join(__dirname, "assets", "sonnet18.txt")
 	]);
 
-	while (true) {
+	while (true) { // eslint-disable-line no-constant-condition
 		await sleep(500);
 		if (clientError || clientDone) {
 			break;

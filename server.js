@@ -423,11 +423,10 @@ function SocketIOFileUploadServer() {
 		if (fileInfo.writeStream) {
 			fileInfo.writeStream.end();
 		}
-	}
+	};
 	var _cleanupFile2 = function (id) {
-		var fileInfo = files[id];
 		delete files[id];
-	}
+	};
 
 	/**
 	 * Private function to handle a client disconnect event.
