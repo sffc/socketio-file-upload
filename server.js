@@ -197,12 +197,14 @@ function SocketIOFileUploadServer() {
 							return;
 						}
 
-						_emitComplete(socket, data.id, fileInfo.success);
+						// The order here matters:
+						// _cleanupFile needs to be before server-side "saved" event such that the "saved" event can move the file (see #62)
+						// The server-side "saved" event needs to be before _emitComplete so that clientDetail can be edited (see #82)
 						_cleanupFile(data.id);
-						// Emit the "saved" event to the server-side listeners
 						self.emit("saved", {
 							file: fileInfo
 						});
+						_emitComplete(socket, data.id, fileInfo.success);
 					});
 				}
 				else {

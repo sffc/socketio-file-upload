@@ -55,8 +55,10 @@ test("test setup function", function (t) {
 
 			uploader.on("saved", function (ev) {
 				t.ok(++savedFired <= startFired, "'saved' event has not fired too many times");
-
 				t.ok(ev.file.success, "Successful save");
+
+				// Server-to-Client Metadata
+				ev.file.clientDetail.foo = "from-server";
 
 				if (numSubmitted > 0 && savedFired >= numSubmitted) {
 					t.equal(completeFired, startFired, "'complete' event fired the right number of times");

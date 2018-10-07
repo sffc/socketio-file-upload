@@ -67,6 +67,9 @@ test("basic functionality", function (t) {
 		t.ok(ev.detail, "'complete' event has a 'detail' property");
 		t.ok(ev.success, "'complete' event was successful");
 
+		// Server-to-Client Metadata
+		t.equal(ev.detail.foo, "from-server", "server-to-client metadata correct");
+
 		if (completeFired >= numSubmitted) {
 
 			t.equal(startFired, numSubmitted, "'start' event fired the right number of times");
