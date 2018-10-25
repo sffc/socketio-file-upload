@@ -36,9 +36,9 @@
   },
   "repository": {
     "type": "git",
-    "url": "git://github.com/vote539/socketio-file-upload.git"
+    "url": "git://github.com/sffc/socketio-file-upload.git"
   },
-  "homepage": "https://github.com/vote539/socketio-file-upload",
+  "homepage": "https://github.com/sffc/socketio-file-upload",
   "author": {
     "name": "Shane Carr",
     "email": "shane.carr@wustl.edu"
