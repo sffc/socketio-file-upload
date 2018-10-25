@@ -1,8 +1,16 @@
 language: node_js
 node_js:
-  - "8"
+  - '8'
 install:
   - npm install
 script:
   - X_USE_PHANTOM=1 npm test
   - npm run lint
+deploy:
+  provider: npm
+  email: vote539@gmail.com
+  api_key:
+    secure: dD6uNFp6DhPECzt9EcjA9csnEN96qE8a2h2ozZfv/qODhcPFUxGUjzkcgt8p4kBXIjGJSeZcbPGdmTXkInX0XU+v57PvsZXTcuyc61Q8fR+KI6m8f4ywzvchriBxZppART4+QqqfeGSxThqKOM+HQCgl/dQJiXVHN3VeulW6Yy2YjtspbndVuBsJsr88hHH/RgyLMn4aN0gExYFwb9Tn05htEmfNpILAmX2HXwD0jlMkI+itgCuqd5pDi2xgUZHtGhPtes5q2ESBEW6L3m/9oGEWjAt/OsOtVcKRdpmtJP+q+A/kTcb/CUmDdTiF8xLr/4bDawpZcPkaeQAs8PxSveJUAL984ihT4y5jAiPB9hBXSybCA7y5ruBszbGh26ljdUtX/jaFZRskSMzdbGlX24npZnhJztiDv8p+18rALIOPydVBioUmrow541N17J4UYPpNbsnWOmHoZla2t7MzRog19U6KGdILA2fOIeBpgQxwRL9ukyh9CUheB+NxL+RQc2DmThY3W7ZfVsBE+nDtBTWiG0Fsq7afubAVzcSrBEuGEcJkrAqUSN1Qoleoc5bHivFduMDzgmzQE9fqC4I1/u3ES93kvvWnYXS54/N9J6PGF3voKO67ts9yjp8repX3B/M8izGZuVav7DhqbTCUYlUz9D0u+Q+xy4lp3BsQVA4=
+  on:
+    tags: true
+    repo: sffc/socketio-file-upload
