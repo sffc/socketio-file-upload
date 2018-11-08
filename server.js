@@ -35,38 +35,51 @@ var util = require("util"),
 	fs = require("fs");
 
 
-function SocketIOFileUploadServer() {
+function SocketIOFileUploadServer(options) {
 	"use strict";
 
 	EventEmitter.call(this);
 	var self = this; // avoids context issues
 
+	var _getOption = function (key, defaultValue) {
+		if(!options) {
+			return defaultValue;
+		}
+		return options[key] || defaultValue;
+	}
+
 	/**
 	 * Directory in which to save uploaded files.  null = do not save files
 	 * @type {String}
 	 */
-	self.dir = null;
+	self.dir = _getOption("dir", null);
 
 	/**
 	 * What mode (UNIX permissions) in which to save uploaded files
 	 * @type {Number}
 	 */
-	self.mode = "0666";
+	self.mode = _getOption("mode", "0666");
 
 	/**
 	 * Maximum file size, in bytes, when saving files.  An "error" event will
 	 * be emitted when this size is exceeded, and the data will not be written
 	 * to the disk.  null = allow any file size
 	 */
-	self.maxFileSize = null;
-	
+	self.maxFileSize = _getOption("maxFileSize", null);
+
 	/**
 	 * Whether or not to emit an error event if a progress chunk fails to
 	 * finish writing.  The failure could be a harmless notification that the
 	 * file is larger than the internal buffer size, or it could mean that the
 	 * file upload triggered an ENOSPC error.
 	 */
-	self.emitChunkFail = false;
+	self.emitChunkFail = _getOption("maxFileSize", false);
+
+	/**
+	 * Specify the topic to listen on.
+	 * Need to be the same that the one specified in the client.
+	 */
+	self.topicName = _getOption("topicName", "siofu");
 
 	/**
 	 * Default validator.
@@ -80,7 +93,7 @@ function SocketIOFileUploadServer() {
 	var files = [];
 
 	/**
-	 * Private function to emit the "siofu_complete" message on the socket.
+	 * Private function to emit the "_complete" message on the socket.
 	 * @param  {Number} id      The file ID as passed on the siofu_upload.
 	 * @param  {boolean} success
 	 * @return {void}
@@ -93,7 +106,7 @@ function SocketIOFileUploadServer() {
 			return;
 		}
 
-		socket.emit("siofu_complete", {
+		socket.emit(self.topicName + "_complete", {
 			id: id,
 			success: success,
 			detail: fileInfo.clientDetail
@@ -251,7 +264,7 @@ function SocketIOFileUploadServer() {
 				if (self.maxFileSize !== null
 						&& fileInfo.bytesLoaded > self.maxFileSize) {
 					fileInfo.success = false;
-					socket.emit("siofu_error", {
+					socket.emit(self.topicName + "_error", {
 						id: data.id,
 						message: "Max allowed file size exceeded"
 					});
@@ -274,7 +287,7 @@ function SocketIOFileUploadServer() {
 					}
 				}
 				// Emit that the chunk has been received, so client starts sending the next chunk
-				socket.emit("siofu_chunk", { id: data.id });
+				socket.emit(self.topicName + "_chunk", { id: data.id });
 				self.emit("progress", {
 					file: fileInfo,
 					buffer: buffer
@@ -326,7 +339,7 @@ function SocketIOFileUploadServer() {
 				} else {
 					// If we're not saving the file, we are ready to start receiving data now.
 					if (!self.dir) {
-						socket.emit("siofu_ready", {
+						socket.emit(self.topicName + "_ready", {
 							id: data.id,
 							name: null
 						});
@@ -374,7 +387,7 @@ function SocketIOFileUploadServer() {
 								return;
 							}
 
-							socket.emit("siofu_ready", {
+							socket.emit(self.topicName + "_ready", {
 								id: data.id,
 								name: newBase
 							});
@@ -458,9 +471,9 @@ function SocketIOFileUploadServer() {
 	 * @return {void}
 	 */
 	this.listen = function (socket) {
-		socket.on("siofu_start", _uploadStart(socket));
-		socket.on("siofu_progress", _uploadProgress(socket));
-		socket.on("siofu_done", _uploadDone(socket));
+		socket.on(self.topicName + "_start", _uploadStart(socket));
+		socket.on(self.topicName + "_progress", _uploadProgress(socket));
+		socket.on(self.topicName + "_done", _uploadDone(socket));
 		socket.on("disconnect", _onDisconnect(socket));
 	};
 
@@ -483,7 +496,7 @@ function SocketIOFileUploadServer() {
 		}
 
 		fileInfo.success = false;
-		socket.emit("siofu_error", {
+		socket.emit(self.topicName + "_error", {
 			id: id,
 			message: "File upload aborted by server"
 		});

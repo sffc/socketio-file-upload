@@ -1,0 +1,22 @@
+# IDE Configuration
+# See if you need a plugin => https://editorconfig.org/#download
+
+root = true
+
+# Default config
+
+[*]
+charset = utf-8
+end_of_line = lf
+indent_style = tab
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+# Specific config
+
+[*.{json,yml,yaml}]
+indent_style = space
+indent_size = 1
+
+[*.md]
+trim_trailing_whitespace = false

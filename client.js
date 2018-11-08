@@ -48,7 +48,7 @@
 	}
 	/* eslint-enable no-undef */
 }(this, "SocketIOFileUpload", function () {
- return function (socket) {
+ return function (socket, options) {
 	"use strict";
 
 	var self = this; // avoids context issues
@@ -72,12 +72,20 @@
 		readyCallbacks = {},
 		communicators = {};
 
+	var _getOption = function (key, defaultValue) {
+		if(!options) {
+			return defaultValue;
+		}
+		return options[key] || defaultValue;
+	}
+
 	self.fileInputElementId = "siofu_input_"+window.siofu_global.instances++;
 	self.resetFileInputs = true;
-	self.useText = false;
-	self.serializedOctets = false;
-	self.useBuffer = true;
-	self.chunkSize = 1024 * 100; // 100kb default chunk size
+	self.useText = _getOption("useText", false);
+	self.serializedOctets = _getOption("serializedOctets", false);
+	self.useBuffer = _getOption("useBuffer", true);
+	self.chunkSize = _getOption("chunkSize", 1024 * 100); // 100kb default chunk size
+	self.topicName = _getOption("topicName", "siofu");
 
 	/**
 	 * Private method to dispatch a custom event on the instance.
@@ -180,14 +188,14 @@
 					}
 				}
 				catch (error) {
-					socket.emit("siofu_done", {
+					socket.emit(self.topicName + "_done", {
 						id: id,
 						interrupt: true
 					});
 					return;
 				}
 			}
-			socket.emit("siofu_progress", {
+			socket.emit(self.topicName + "_progress", {
 				id: id,
 				size: file.size,
 				start: start,
@@ -199,7 +207,7 @@
 
 		// Callback when tranmission is complete.
 		var transmitDone = function () {
-			socket.emit("siofu_done", {
+			socket.emit(self.topicName + "_done", {
 				id: id
 			});
 		};
@@ -256,7 +264,7 @@
 
 		// Listen for an "error" event.  Stop the transmission if one is received.
 		_listenTo(reader, "error", function () {
-			socket.emit("siofu_done", {
+			socket.emit(self.topicName + "_done", {
 				id: id,
 				interrupt: true
 			});
@@ -265,7 +273,7 @@
 
 		// Do the same for the "abort" event.
 		_listenTo(reader, "abort", function () {
-			socket.emit("siofu_done", {
+			socket.emit(self.topicName + "_done", {
 				id: id,
 				interrupt: true
 			});
@@ -273,7 +281,7 @@
 		});
 
 		// Transmit the "start" message to the server.
-		socket.emit("siofu_start", {
+		socket.emit(self.topicName + "_start", {
 			name: file.name,
 			mtime: file.lastModified,
 			meta: file.meta,
@@ -587,15 +595,15 @@
 
 	// CONSTRUCTOR: Listen to the "complete", "ready", and "error" messages
 	// on the socket.
-	_listenTo(socket, "siofu_chunk", function(data){
+	_listenTo(socket, self.topicName + "_chunk", function(data){
 		if ( chunkCallbacks[data.id] )
 			chunkCallbacks[data.id]();
 	});
-	_listenTo(socket, "siofu_ready", function (data) {
+	_listenTo(socket, self.topicName + "_ready", function (data) {
 		if ( readyCallbacks[data.id] )
 			readyCallbacks[data.id](data.name);
 	});
-	_listenTo(socket, "siofu_complete", function (data) {
+	_listenTo(socket, self.topicName + "_complete", function (data) {
 		if ( uploadedFiles[data.id] ) {
 			_dispatch("complete", {
 				file: uploadedFiles[data.id],
@@ -604,7 +612,7 @@
 			});
 		}
 	});
-	_listenTo(socket, "siofu_error", function (data) {
+	_listenTo(socket, self.topicName + "_error", function (data) {
 		if ( uploadedFiles[data.id] ) {
 			_dispatch("error", {
 				file: uploadedFiles[data.id],
