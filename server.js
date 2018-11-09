@@ -111,6 +111,11 @@ function SocketIOFileUploadServer(options) {
 	self.wrapOptions = _getOption("wrapOptions", null);
 
 	/**
+	 *  Unwrap option is the same as wrap options but when receive data.
+	 */
+	self.unwrapOptions = _getOption("unwrapOptions", null);
+
+	/**
 	 * Allow user to access to some private function to customize message reception.
 	 * This is used if you specified wrapOptions on the client side and have to manually bind message to callback.
 	 */
@@ -527,10 +532,31 @@ function SocketIOFileUploadServer(options) {
 	 * @return {void}
 	 */
 	this.listen = function (socket) {
-		socket.on(self.topicName + "_start", _uploadStart(socket));
-		socket.on(self.topicName + "_progress", _uploadProgress(socket));
-		socket.on(self.topicName + "_done", _uploadDone(socket));
-		socket.on("disconnect", _onDisconnect(socket));
+		if(self.onlyOneTopic) {
+			var actionToMethods = {
+				start: _uploadStart(socket),
+				progress: _uploadProgress(socket),
+				done: _uploadDone(socket)
+			};
+			socket.on(self.topicName, function(message) {
+				if (typeof message !== "object") {
+					console.log("SocketIOFileUploadServer Error: You choose onlyOneTopic options so the message from the server need to be an object"); // eslint-disable-line no-console
+					return;
+				}
+				var action = message[self.unwrapOptions.siofuActionKey];
+				var data = message[self.unwrapOptions.siofuDataKey];
+				if(!action || !data || !actionToMethods[message[self.unwrapOptions.siofuActionKey]]) {
+					console.log("SocketIOFileUploadServer Error: You choose onlyOneTopic option but the message from the client is wrong configured. Check the message and unwrapOptions"); // eslint-disable-line no-console
+					return;
+				}
+				message[action](data);
+			});
+		} else {
+			socket.on(self.topicName + "_start", _uploadStart(socket));
+			socket.on(self.topicName + "_progress", _uploadProgress(socket));
+			socket.on(self.topicName + "_done", _uploadDone(socket));
+			socket.on("disconnect", _onDisconnect(socket));
+		}
 	};
 
 	/**

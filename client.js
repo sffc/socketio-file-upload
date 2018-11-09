@@ -119,6 +119,18 @@
 
 	self.wrapOptions = _getOption("wrapOptions", null);
 
+	/**
+	 *  Unwrap option is the same as wrap options but when receive data.
+	 */
+	self.unwrapOptions = _getOption("unwrapOptions", null);
+
+
+	/**
+	 * Allow user to access to some private function to customize message reception.
+	 * This is used if you specified wrapOptions on the client side and have to manually bind message to callback.
+	 */
+	self.exposePrivateFunction = _getOption("exposePrivateFunction", false);
+
 	var _getTopicName = function (topicExtension) {
 		if (self.onlyOneTopic) {
 			return self.topicName;
@@ -689,16 +701,29 @@
 		};
 
 		_listenTo(socket, _getTopicName(), function (message) {
-			if (!message.action) {
+			if (typeof message !== "object") {
 				return;
 			}
-			mapActionToCallback[message.action](message.data);
+			var action = message[self.unwrapOptions.siofuActionKey];
+			var data = message[self.unwrapOptions.siofuDataKey];
+			if (!action || !data || !mapActionToCallback[action]) {
+				console.log("SocketIOFileUploadClient Error: You choose onlyOneTopic option but the message from the client is wrong configured. Check the message and unwrapOptions"); // eslint-disable-line no-console
+				return;
+			}
+			mapActionToCallback[action](data);
 		});
 	} else {
 		_listenTo(socket, _getTopicName("_chunk"), _chunckCallback);
 		_listenTo(socket, _getTopicName("_ready"), _readyCallback);
 		_listenTo(socket, _getTopicName("_complete"), _completCallback);
 		_listenTo(socket, _getTopicName("_error"), _errorCallback);
+	}
+
+	if (this.exposePrivateFunction) {
+		this.chunckCallback = _chunckCallback;
+		this.readyCallback = _readyCallback;
+		this.completCallback = _completCallback;
+		this.errorCallback = _errorCallback;
 	}
  };
 }));
