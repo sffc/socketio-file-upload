@@ -77,7 +77,7 @@
 			return defaultValue;
 		}
 		return options[key] || defaultValue;
-	}
+	};
 
 	self.fileInputElementId = "siofu_input_"+window.siofu_global.instances++;
 	self.resetFileInputs = true;
@@ -86,6 +86,59 @@
 	self.useBuffer = _getOption("useBuffer", true);
 	self.chunkSize = _getOption("chunkSize", 1024 * 100); // 100kb default chunk size
 	self.topicName = _getOption("topicName", "siofu");
+
+  /**
+  * Used with wrapOptions to use only one topic for all event instead of using separate topic
+  */
+	self.onlyOneTopic = _getOption("onlyOneTopic", false);
+
+
+	/**
+	 * Wrap options allow you to wrap the Siofu messages into a predefined format.
+	 * You can then easily use Siofu packages even in strongly typed topic.
+	 * WrapOptions is an object constituted of two mandatory key and one optional:
+	 * siofuDataKey (mandatory): Corresponding to the key where we will send the siofu data
+	 * siofuActionKey (mandatory): Corresponding to the key where we will send the siofu action type
+	 * data (optional): Corresponding to the data to send along with file data
+	 *
+	 * ex: if wrapOptions = { data: { userId: 'someId' }, siofuDataKey: 'message', siofuActionKey: 'action' }
+	 * When Siofu will send for example a progress message this will send:
+		{
+			userId: 'someId',
+			action: 'progress',
+			message: {
+				id: id,
+				size: file.size,
+				start: start,
+				end: end,
+				content: content,
+				base64: isBase64
+			}
+		}
+	 */
+
+	self.wrapOptions = _getOption("wrapOptions", null);
+
+	var _getTopicName = function (topicExtension) {
+		if (self.onlyOneTopic) {
+			return self.topicName;
+		}
+
+		return self.topicName + topicExtension;
+	};
+
+	var _wrapData = function (data, action) {
+		if(!self.wrapOptions || !self.wrapOptions.siofuDataKey || !self.wrapOptions.siofuActionKey) {
+			return data;
+		}
+		var dataWrapped = {};
+		if(self.wrapOptions.data) {
+			Object.assign(dataWrapped, self.wrapOptions.data);
+		}
+		dataWrapped[self.wrapOptions.siofuDataKey] = data;
+		dataWrapped[self.wrapOptions.siofuActionKey] = action;
+		return dataWrapped;
+	};
 
 	/**
 	 * Private method to dispatch a custom event on the instance.
@@ -188,28 +241,30 @@
 					}
 				}
 				catch (error) {
-					socket.emit(self.topicName + "_done", {
+					socket.emit(_getTopicName("_done"), _wrapData({
 						id: id,
 						interrupt: true
-					});
+					}, "done"));
 					return;
 				}
 			}
-			socket.emit(self.topicName + "_progress", {
+
+			// TODO override the send data
+			socket.emit(_getTopicName("_progress"), _wrapData({
 				id: id,
 				size: file.size,
 				start: start,
 				end: end,
 				content: content,
 				base64: isBase64
-			});
+			}, "progress"));
 		};
 
 		// Callback when tranmission is complete.
 		var transmitDone = function () {
-			socket.emit(self.topicName + "_done", {
+			socket.emit(_getTopicName("_done"), _wrapData({
 				id: id
-			});
+			}, "done"));
 		};
 
 		// Load a "chunk" of the file from offset to offset+chunkSize.
@@ -264,31 +319,31 @@
 
 		// Listen for an "error" event.  Stop the transmission if one is received.
 		_listenTo(reader, "error", function () {
-			socket.emit(self.topicName + "_done", {
+			socket.emit(_getTopicName("_done"), _wrapData({
 				id: id,
 				interrupt: true
-			});
+			}, "done"));
 			_stopListeningTo(reader, "load", loadCb);
 		});
 
 		// Do the same for the "abort" event.
 		_listenTo(reader, "abort", function () {
-			socket.emit(self.topicName + "_done", {
+			socket.emit(_getTopicName("_done"), _wrapData({
 				id: id,
 				interrupt: true
-			});
+			}, "done"));
 			_stopListeningTo(reader, "load", loadCb);
 		});
 
 		// Transmit the "start" message to the server.
-		socket.emit(self.topicName + "_start", {
+		socket.emit(_getTopicName("_start"), _wrapData({
 			name: file.name,
 			mtime: file.lastModified,
 			meta: file.meta,
 			size: file.size,
 			encoding: useText ? "text" : "octet",
 			id: id
-		});
+		}, "start"));
 
 		// To avoid a race condition, we don't want to start transmitting to the
 		// server until the server says it is ready.
@@ -592,27 +647,27 @@
 		return base64;
 	};
 	// END OTHER LIBRARIES
-
-	// CONSTRUCTOR: Listen to the "complete", "ready", and "error" messages
-	// on the socket.
-	_listenTo(socket, self.topicName + "_chunk", function(data){
+	var _chunckCallback = function(data) {
 		if ( chunkCallbacks[data.id] )
 			chunkCallbacks[data.id]();
-	});
-	_listenTo(socket, self.topicName + "_ready", function (data) {
-		if ( readyCallbacks[data.id] )
+	};
+
+	var _readyCallback = function (data) {
+		if (readyCallbacks[data.id])
 			readyCallbacks[data.id](data.name);
-	});
-	_listenTo(socket, self.topicName + "_complete", function (data) {
-		if ( uploadedFiles[data.id] ) {
+	};
+
+	var _completCallback = function (data) {
+		if (uploadedFiles[data.id]) {
 			_dispatch("complete", {
 				file: uploadedFiles[data.id],
 				detail: data.detail,
 				success: data.success
 			});
 		}
-	});
-	_listenTo(socket, self.topicName + "_error", function (data) {
+	};
+
+	var _errorCallback = function (data) {
 		if ( uploadedFiles[data.id] ) {
 			_dispatch("error", {
 				file: uploadedFiles[data.id],
@@ -621,6 +676,29 @@
 			});
 			if (communicators) communicators[data.id].abort = true;
 		}
-	});
+	};
+
+	// CONSTRUCTOR: Listen to the "complete", "ready", and "error" messages
+	// on the socket.
+	if (self.onlyOneTopic) {
+		var mapActionToCallback = {
+			chunk: _chunckCallback,
+			ready: _readyCallback,
+			complete: _completCallback,
+			error: _errorCallback
+		};
+
+		_listenTo(socket, _getTopicName(), function (message) {
+			if (!message.action) {
+				return;
+			}
+			mapActionToCallback[message.action](message.data);
+		});
+	} else {
+		_listenTo(socket, _getTopicName("_chunk"), _chunckCallback);
+		_listenTo(socket, _getTopicName("_ready"), _readyCallback);
+		_listenTo(socket, _getTopicName("_complete"), _completCallback);
+		_listenTo(socket, _getTopicName("_error"), _errorCallback);
+	}
  };
 }));

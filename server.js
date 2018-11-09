@@ -46,7 +46,7 @@ function SocketIOFileUploadServer(options) {
 			return defaultValue;
 		}
 		return options[key] || defaultValue;
-	}
+	};
 
 	/**
 	 * Directory in which to save uploaded files.  null = do not save files
@@ -82,12 +82,68 @@ function SocketIOFileUploadServer(options) {
 	self.topicName = _getOption("topicName", "siofu");
 
 	/**
+	 * If true all the command will be send to only one topic.
+	 * Instead of use topicName_<action> we use topicName and pass action to the data payload
+	 */
+	self.onlyOneTopic = _getOption("onlyOneTopic", false);
+
+	/**
+	 * Wrap options allow you to wrap the Siofu messages into a predefined format.
+	 * You can then easily use Siofu packages even in strongly typed topic.
+	 * WrapOptions is an object constituted of two mandatory key and one optional:
+	 * siofuDataKey (mandatory): Corresponding to the key where we will send the siofu data
+	 * siofuActionKey (mandatory): Corresponding to the key where we will send the siofu action type
+	 * data (optional): Corresponding to the data to send along with file data
+	 *
+	 * ex: if wrapOptions = { data: { acknowledgement: true }, siofuDataKey: 'message', siofuActionKey: 'action' }
+	 * When Siofu will send for example a complete message this will send:
+	 {
+		 acknowledgement: true,
+		 action: 'complete',
+		 message: {
+			id: id,
+			success: success,
+			detail: fileInfo.clientDetail
+		 }
+	 }
+	 */
+
+	self.wrapOptions = _getOption("wrapOptions", null);
+
+	/**
+	 * Allow user to access to some private function to customize message reception.
+	 * This is used if you specified wrapOptions on the client side and have to manually bind message to callback.
+	 */
+	self.exposePrivateFunction = _getOption("exposePrivateFunction", false);
+
+	/**
 	 * Default validator.
 	 * @param  {Object} event   Contains { file: fileInfo }
 	 * @param  {function} callback   Call it with true to start upload, false to abort
 	 */
 	self.uploadValidator = function(event, callback){
 		callback(true);
+	};
+
+	var _getTopicName = function (topicExtension) {
+		if (self.onlyOneTopic) {
+			return self.topicName;
+		}
+
+		return self.topicName + topicExtension;
+	};
+
+	var _wrapData = function (data, action) {
+		if(!self.wrapOptions || !self.wrapOptions.siofuDataKey || !self.wrapOptions.siofuActionKey) {
+			return data;
+		}
+		var dataWrapped = {};
+		if(self.wrapOptions.data) {
+			Object.assign(dataWrapped, self.wrapOptions.data);
+		}
+		dataWrapped[self.wrapOptions.siofuDataKey] = data;
+		dataWrapped[self.wrapOptions.siofuActionKey] = action;
+		return dataWrapped;
 	};
 
 	var files = [];
@@ -106,11 +162,11 @@ function SocketIOFileUploadServer(options) {
 			return;
 		}
 
-		socket.emit(self.topicName + "_complete", {
+		socket.emit(_getTopicName("_complete"), _wrapData({
 			id: id,
 			success: success,
 			detail: fileInfo.clientDetail
-		});
+		}, "complete"));
 	};
 
 	/**
@@ -264,10 +320,10 @@ function SocketIOFileUploadServer(options) {
 				if (self.maxFileSize !== null
 						&& fileInfo.bytesLoaded > self.maxFileSize) {
 					fileInfo.success = false;
-					socket.emit(self.topicName + "_error", {
+					socket.emit(_getTopicName("_error"), _wrapData({
 						id: data.id,
 						message: "Max allowed file size exceeded"
-					});
+					}, "error"));
 					self.emit("error", {
 						file: fileInfo,
 						error: new Error("Max allowed file size exceeded"),
@@ -287,7 +343,7 @@ function SocketIOFileUploadServer(options) {
 					}
 				}
 				// Emit that the chunk has been received, so client starts sending the next chunk
-				socket.emit(self.topicName + "_chunk", { id: data.id });
+				socket.emit(_getTopicName("_chunk"), _wrapData({ id: data.id }, "chunk"));
 				self.emit("progress", {
 					file: fileInfo,
 					buffer: buffer
@@ -339,10 +395,10 @@ function SocketIOFileUploadServer(options) {
 				} else {
 					// If we're not saving the file, we are ready to start receiving data now.
 					if (!self.dir) {
-						socket.emit(self.topicName + "_ready", {
+						socket.emit(_getTopicName("_ready"), _wrapData({
 							id: data.id,
 							name: null
-						});
+						}, "reday"));
 					} else {
 						_serverReady(socket, data, fileInfo);
 					}
@@ -353,7 +409,7 @@ function SocketIOFileUploadServer(options) {
 
 	// The indentation got messed up here, but changing it would make git history less useful.
 	/* eslint-disable indent */
-    var _serverReady = function(socket, data, fileInfo){
+		var _serverReady = function(socket, data, fileInfo){
 				// Find a filename and get the handler.  Then tell the client that
 				// we're ready to start receiving data.
 				_findFileName(fileInfo, function (err, newBase, pathName) {
@@ -387,10 +443,10 @@ function SocketIOFileUploadServer(options) {
 								return;
 							}
 
-							socket.emit(self.topicName + "_ready", {
+							socket.emit(_getTopicName("_ready"), _wrapData({
 								id: data.id,
 								name: newBase
-							});
+							}, "ready"));
 						});
 						writeStream.on("error", function (err) {
 							// Check if the upload was aborted
@@ -496,12 +552,24 @@ function SocketIOFileUploadServer(options) {
 		}
 
 		fileInfo.success = false;
-		socket.emit(self.topicName + "_error", {
+		socket.emit(_getTopicName("_error"), _wrapData({
 			id: id,
 			message: "File upload aborted by server"
-		});
+		}, "error"));
 		_cleanupFile(id);
 	};
+
+	if (this.exposePrivateFunction) {
+		this.uploadStart = function (socket, data) {
+			return _uploadStart(socket)(data);
+		};
+		this.uploadProgress = function (socket, data) {
+			return _uploadProgress(socket)(data);
+		};
+		this.uploadDone = function (socket, data) {
+			return _uploadDone(socket)(data);
+		};
+	}
 }
 util.inherits(SocketIOFileUploadServer, EventEmitter);
 
