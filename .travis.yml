@@ -6,6 +6,11 @@ install:
 script:
   - X_USE_PHANTOM=1 npm test
   - npm run lint
+  # Ensure that client.min.js is in sync:
+  # Re-generate it and assert no changed files.
+  - npm run minify
+  - git update-index --refresh
+  - git diff-index HEAD
 deploy:
   provider: npm
   email: vote539@gmail.com

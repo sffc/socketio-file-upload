@@ -29,7 +29,7 @@
 // Do not check function indentation because this is intentionally ignored in order to preserve history in git.
 /* eslint-disable indent */
 
-/**
+/*
  * A client-side JavaScript object to handle file uploads to a Node.JS server
  * via Socket.IO.
  * @implements EventTarget

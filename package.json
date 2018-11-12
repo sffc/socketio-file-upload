@@ -16,6 +16,7 @@
     "concat-stream": "^1.5.0",
     "ecstatic": "^2.0.0",
     "eslint": "^5.6.1",
+    "google-closure-compiler": "^20181028.0.1",
     "phantom": "^6.0.3",
     "socket.io": "^2.1.1",
     "socket.io-client": "^2.1.1",
@@ -32,7 +33,11 @@
   "scripts": {
     "lint": "eslint .",
     "pretest": "browserify test/serve/browser-file-transfer.js -o test/serve/bundle.js",
-    "test": "tape test/*.js"
+    "test": "tape test/*.js",
+    "minify:compile": "google-closure-compiler --js=client.js --js_output_file=client.min.js.tmp",
+    "minify:license": "echo \"$(head -n5 client.min.js)\n$(cat client.min.js.tmp)\" > client.min.js.tmp",
+    "minify:move": "mv client.min.js.tmp client.min.js",
+    "minify": "npm run minify:compile && npm run minify:license && npm run minify:move"
   },
   "repository": {
     "type": "git",
