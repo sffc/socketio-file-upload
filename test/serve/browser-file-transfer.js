@@ -10,8 +10,9 @@ function evtos(ev) {
 	return ev.file ? "[ev file=" + ev.file.name + "]" : "[ev]";
 }
 
+var socket = new SocketIoClient();
+
 test("basic functionality", function (t) {
-	var socket = new SocketIoClient();
 	var client = new SiofuClient(socket);
 
 	var numSubmitted = 0;
@@ -91,7 +92,6 @@ test("basic functionality", function (t) {
 			t.equal(completeFired, numSubmitted, "'complete' event fired the right number of times " + evtos(ev));
 
 			client.destroy();
-			socket.disconnect();
 			t.end();
 		}
 	});
@@ -105,9 +105,7 @@ test("basic functionality", function (t) {
 
 
 test("Test wrap data and sand to a single topic", function (t) {
-	var socket = new SocketIoClient();
-	var client = new SiofuClient(socket);
-	/*var client = new SiofuClient(socket, {
+	var client = new SiofuClient(socket, {
 		topicName: "siofu_only_topic",
 		wrapData: {
 			wrapKey: {
@@ -119,7 +117,7 @@ test("Test wrap data and sand to a single topic", function (t) {
 				message: "message",
 			},
 		}
-	});*/
+	});
 
 	var numSubmitted = 0;
 	var startFired = 0;
@@ -140,9 +138,17 @@ test("Test wrap data and sand to a single topic", function (t) {
 	t.notOk(client.useText, "instance.useText defaults to false");
 	t.ok(client.useBuffer, "instance.useBuffer defaults to true");
 	t.notOk(client.serializeOctets, "instance.serializeOctets defaults to false");
-	t.equal(client.topicName, "siofu", "instance.topicName defaults to siofu");
-	t.notOk(client.wrapData, "instance.wrapOptions defaults to null");
-	t.notOk(client.unwrapOptions, "instance.wrapOptions defaults to null");
+	t.equal(client.topicName, "siofu_only_topic", "instance.topicName correctly set to siofu_only_topic");
+	t.deepLooseEqual(client.wrapData, {
+		wrapKey: {
+			action: "action",
+			message: "data"
+		},
+		unwrapKey: {
+			action: "action",
+			message: "message"
+		}
+	}, "instance.wrapData correctly formatted");
 
 	if (window._phantom) {
 		console.log("PHANTOMJS DETECTED: Disabling useBuffer now.");
@@ -158,7 +164,7 @@ test("Test wrap data and sand to a single topic", function (t) {
 	client.addEventListener("choose", function (ev) {
 		numSubmitted = ev.files.length;
 		t.ok(numSubmitted, "user just submitted " + numSubmitted + " files " + evtos(ev));
-		socket.emit("numSubmitted", numSubmitted);
+		socket.emit("numSubmittedWrap", numSubmitted);
 
 		t.notOk(startFired, "'start' event must not have been fired yet " + evtos(ev));
 		t.notOk(loadFired, "'load' event must not have been fired yet " + evtos(ev));

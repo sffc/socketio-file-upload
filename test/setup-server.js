@@ -2,40 +2,49 @@
 /* eslint-disable no-console */
 /* eslint-env node */
 
-var SocketIo = require("socket.io");
-var SiofuServer = require("../server.js");
+const SocketIo = require("socket.io");
+const SiofuServer = require("../server.js");
 
 module.exports = {
-	setup: function(httpServer, connectionCb) {
-		var io = new SocketIo(httpServer);
-		var uploader = new SiofuServer();
+	setupSocketIo(httpServer) {
+		return new Promise((resolve) => {
+			const io = new SocketIo(httpServer);
 
-		io.on("connection", function (socket) {
-			uploader.listen(socket);
-			connectionCb(socket);
+			io.on("connection", (socket) => {
+				resolve(socket);
+			});
 		});
+	},
+	getUploader(siofuOptions, socket) {
+		const uploader = new SiofuServer(siofuOptions);
 
-		uploader.dir = "/tmp";
+		uploader.listen(socket);
 
-		uploader.uploadValidator = function(event, next) {
+		uploader.uploadValidator = (event, next) => {
 			console.log("Passing upload validator for " + event.file.name);
 			next(true);
 		};
 
 		return uploader;
 	},
-	listen: function(server, cb) {
-		// Try the first time
-		var port = Math.floor(Math.random() * 63535 + 2000);
-		console.log("Attempting connection on port", port);
-		server.listen(port, "127.0.0.1", cb(port));
+	listen(server) {
+		return new Promise((resolve) => {
+			// Try the first time
+			let port = Math.floor(Math.random() * 63535 + 2000);
+			console.log("Attempting connection on port", port);
+			server.listen(port, "127.0.0.1", () => {
+				resolve(port);
+			});
 
-		server.on("error", function(err){
-			// Try again
-			port = Math.floor(Math.random() * 63535 + 2000);
-			console.log("Attempt failed. Attempting connection on port", port);
-			console.log("Error was:", err);
-			server.listen(port, "127.0.0.1", cb(port));
+			server.on("error", (err) => {
+				// Try again
+				port = Math.floor(Math.random() * 63535 + 2000);
+				console.log("Attempt failed. Attempting connection on port", port);
+				console.log("Error was:", err);
+				server.listen(port, "127.0.0.1", () => {
+					resolve(port);
+				});
+			});
 		});
 	}
 };

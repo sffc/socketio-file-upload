@@ -586,7 +586,7 @@ function SocketIOFileUploadServer(options) {
 					console.log("SocketIOFileUploadServer Error: You choose to wrap your data but the message from the client is wrong configured. Please check the message and your wrapData option"); // eslint-disable-line no-console
 					return;
 				}
-				message[action](data);
+				actionToMethods[action](data);
 			});
 		} else {
 			socket.on(self.topicName + "_start", _uploadStart(socket));
