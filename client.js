@@ -87,42 +87,76 @@
 	self.chunkSize = _getOption("chunkSize", 1024 * 100); // 100kb default chunk size
 	self.topicName = _getOption("topicName", "siofu");
 
-  /**
-  * Used with wrapOptions to use only one topic for all event instead of using separate topic
-  */
-	self.onlyOneTopic = _getOption("onlyOneTopic", false);
-
-
 	/**
-	 * Wrap options allow you to wrap the Siofu messages into a predefined format.
-	 * You can then easily use Siofu packages even in strongly typed topic.
-	 * WrapOptions is an object constituted of two mandatory key and one optional:
-	 * siofuDataKey (mandatory): Corresponding to the key where we will send the siofu data
-	 * siofuActionKey (mandatory): Corresponding to the key where we will send the siofu action type
-	 * data (optional): Corresponding to the data to send along with file data
-	 *
-	 * ex: if wrapOptions = { data: { userId: 'someId' }, siofuDataKey: 'message', siofuActionKey: 'action' }
-	 * When Siofu will send for example a progress message this will send:
-		{
-			userId: 'someId',
-			action: 'progress',
-			message: {
-				id: id,
-				size: file.size,
-				start: start,
-				end: end,
-				content: content,
-				base64: isBase64
-			}
+	* WrapData allow you to wrap the Siofu messages into a predefined format.
+	* You can then easily use Siofu packages even in strongly typed topic.
+	* wrapData can be a boolean or an object. It is false by default.
+	* If wrapData is true it will allow you to send all the messages to only one topic by wrapping the siofu actions and messages.
+	*
+	* ex:
+	{
+		action: 'complete',
+		message: {
+		 id: id,
+		 success: success,
+		 detail: fileInfo.clientDetail
 		}
-	 */
+	}
+	*
+	* If wrapData is an object constituted of two mandatory key and one optional:
+	* wrapKey and unwrapKey (mandatory): Corresponding to the key used to wrap the siofu data and message
+	* additionalData (optional): Corresponding to the data to send along with file data
+	*
+	* ex:
+	* if wrapData = {
+		wrapKey: {
+			action: 'actionType',
+			message: 'data'
+		},
+		unwrapKey: {
+			action: 'actionType',
+			message: 'message'
+		},
+		additionalData: {
+			acknowledgement: true
+		}
+	}
+	* When Siofu will send for example a complete message this will send:
+	*
+	{
+		acknowledgement: true,
+		actionType: 'complete',
+		data: {
+		 id: id,
+		 success: success,
+		 detail: fileInfo.clientDetail
+		}
+	}
+	* and it's waiting from client data formatted like this:
+	*
+	{
+		actionType: '...',
+		message: {...}
+	}
+	* /!\ If wrapData is wrong configured is interpreted as false /!\
+	*/
+	self.wrapData = _getOption("wrapData", false);
 
-	self.wrapOptions = _getOption("wrapOptions", null);
+	var _isWrapDataWellConfigured = function () {
+		if (typeof self.wrapData === "boolean") {
+			return true;
+		}
+		if (typeof self.wrapData !== "object" || Array.isArray(self.wrapData)) {
+			return false;
+		}
 
-	/**
-	 *  Unwrap option is the same as wrap options but when receive data.
-	 */
-	self.unwrapOptions = _getOption("unwrapOptions", null);
+		if(!self.wrapData.wrapKey || typeof self.wrapData.wrapKey.action !== "string" || typeof self.wrapData.wrapKey.message !== "string" ||
+			!self.wrapData.unwrapKey || typeof self.wrapData.unwrapKey.action !== "string" || typeof self.wrapData.unwrapKey.message !== "string") {
+			return false;
+		}
+
+		return true;
+	};
 
 
 	/**
@@ -132,7 +166,7 @@
 	self.exposePrivateFunction = _getOption("exposePrivateFunction", false);
 
 	var _getTopicName = function (topicExtension) {
-		if (self.onlyOneTopic) {
+		if (self.wrapData) {
 			return self.topicName;
 		}
 
@@ -140,15 +174,15 @@
 	};
 
 	var _wrapData = function (data, action) {
-		if(!self.wrapOptions || !self.wrapOptions.siofuDataKey || !self.wrapOptions.siofuActionKey) {
+		if(!_isWrapDataWellConfigured() || !self.wrapData) {
 			return data;
 		}
 		var dataWrapped = {};
-		if(self.wrapOptions.data) {
-			Object.assign(dataWrapped, self.wrapOptions.data);
+		if(self.wrapData.additionalData) {
+			Object.assign(dataWrapped, self.wrapData.additionalData);
 		}
-		dataWrapped[self.wrapOptions.siofuDataKey] = data;
-		dataWrapped[self.wrapOptions.siofuActionKey] = action;
+		dataWrapped[self.wrapData.wrapKey.message] = data;
+		dataWrapped[self.wrapData.wrapKey.action] = action;
 		return dataWrapped;
 	};
 
@@ -692,7 +726,7 @@
 
 	// CONSTRUCTOR: Listen to the "complete", "ready", and "error" messages
 	// on the socket.
-	if (self.onlyOneTopic) {
+	if (_isWrapDataWellConfigured() && self.wrapData) {
 		var mapActionToCallback = {
 			chunk: _chunckCallback,
 			ready: _readyCallback,
@@ -702,12 +736,13 @@
 
 		_listenTo(socket, _getTopicName(), function (message) {
 			if (typeof message !== "object") {
+				console.log("SocketIOFileUploadClient Error: You choose to wrap your data so the message from the server need to be an object"); // eslint-disable-line no-console
 				return;
 			}
-			var action = message[self.unwrapOptions.siofuActionKey];
-			var data = message[self.unwrapOptions.siofuDataKey];
+			var action = message[self.wrapData.unwrapKey.action];
+			var data = message[self.wrapData.unwrapKey.message];
 			if (!action || !data || !mapActionToCallback[action]) {
-				console.log("SocketIOFileUploadClient Error: You choose onlyOneTopic option but the message from the client is wrong configured. Check the message and unwrapOptions"); // eslint-disable-line no-console
+				console.log("SocketIOFileUploadClient Error: You choose to wrap your data but the message from the server is wrong configured. Check the message and your wrapData option"); // eslint-disable-line no-console
 				return;
 			}
 			mapActionToCallback[action](data);
