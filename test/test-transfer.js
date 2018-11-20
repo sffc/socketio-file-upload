@@ -2,45 +2,45 @@
 /* eslint-disable no-console */
 /* eslint-env node */
 
-var test = require("tape");
-var setup = require("./setup-server.js");
-var chrome = require("chrome-location");
-var cp = require("child_process");
-var http = require("http");
-var fs = require("fs");
-var ecstatic = require("ecstatic");
-var bufferEquals = require("buffer-equals");
-var path = require("path");
-var phantomRunner = require("./browser-phantom");
+const test = require("tape");
+const setup = require("./setup-server.js");
+const chrome = require("chrome-location");
+const cp = require("child_process");
+const http = require("http");
+const fs = require("fs");
+const ecstatic = require("ecstatic");
+const bufferEquals = require("buffer-equals");
+const path = require("path");
+const phantomRunner = require("./browser-phantom");
 
 function evtos(ev) {
 	return ev.file ? "[ev file=" + ev.file.name + "]" : "[ev]";
 }
 
-var mandrillContent = fs.readFileSync(path.join(__dirname, "assets", "mandrill.png"));
-var sonnet18Content = fs.readFileSync(path.join(__dirname, "assets", "sonnet18.txt"));
+const mandrillContent = fs.readFileSync(path.join(__dirname, "assets", "mandrill.png"));
+const sonnet18Content = fs.readFileSync(path.join(__dirname, "assets", "sonnet18.txt"));
 
 function _testUploader(t, uploader, callbackFileSavedAndUnlink) {
-	var startFired = 0;
-	var completeFired = 0;
-	var savedFired = 0;
+	let startFired = 0;
+	let completeFired = 0;
+	let savedFired = 0;
 
 	t.ok(uploader, "uploader is not null/undefined");
 	t.equal(typeof uploader, "object", "uploader is an object");
 
-	uploader.on("start", function (ev) {
+	uploader.on("start", (ev) => {
 		t.ok(!!ev.file, "file not in start event object " + evtos(ev));
 		startFired++;
 	});
 
-	var progressContent = {};
-	uploader.on("progress", function (ev) {
+	let progressContent = {};
+	uploader.on("progress", (ev) => {
 		if (!progressContent[ev.file.id]) progressContent[ev.file.id] = new Buffer([]);
 		progressContent[ev.file.id] = Buffer.concat([progressContent[ev.file.id], ev.buffer]);
 		t.ok(ev.buffer.length <= ev.file.size, "'progress' event " + evtos(ev));
 	});
 
-	uploader.on("complete", function (ev) {
+	uploader.on("complete", (ev) => {
 		t.ok(++completeFired <= startFired, "'complete' event has not fired too many times " + evtos(ev));
 
 		t.ok(ev.file.success, "Successful upload " + evtos(ev));
@@ -48,7 +48,7 @@ function _testUploader(t, uploader, callbackFileSavedAndUnlink) {
 
 	// Currently the test hangs right here!
 
-	uploader.on("saved", function (ev) {
+	uploader.on("saved", (ev) => {
 		t.ok(++savedFired <= startFired, "'saved' event has not fired too many times " + evtos(ev));
 		t.ok(ev.file.success, "Successful save " + evtos(ev));
 
@@ -58,7 +58,7 @@ function _testUploader(t, uploader, callbackFileSavedAndUnlink) {
 		ev.file.clientDetail.foo = "from-server";
 
 		// Check for file equality
-		fs.readFile(ev.file.pathName, function(err, content){
+		fs.readFile(ev.file.pathName, (err, content) => {
 			t.error(err, "reading saved file " + evtos(ev));
 
 			if (!bufferEquals(progressContent[ev.file.id], content)) {
@@ -67,7 +67,7 @@ function _testUploader(t, uploader, callbackFileSavedAndUnlink) {
 				t.pass("Saved file content is same as progress buffer " + evtos(ev));
 			}
 
-			var fileContent = ev.file.name === "mandrill.png" ? mandrillContent : sonnet18Content;
+			let fileContent = ev.file.name === "mandrill.png" ? mandrillContent : sonnet18Content;
 			if (!bufferEquals(fileContent, content)) {
 				t.fail("Saved file content is not the same as original file buffer " + evtos(ev));
 			} else {
@@ -75,19 +75,19 @@ function _testUploader(t, uploader, callbackFileSavedAndUnlink) {
 			}
 
 			// Clean up
-			fs.unlink(ev.file.pathName, function() {
+			fs.unlink(ev.file.pathName, () => {
 				callbackFileSavedAndUnlink(startFired, completeFired, savedFired, ev);
 			});
 		});
 	});
 
-	uploader.on("error", function (ev) {
+	uploader.on("error", (ev) => {
 		t.fail("Error: " + ev.error + " " + evtos(ev));
 	});
 
 }
 
-test("test setup function", function (t) {
+test("test setup function", (t) => {
 	const requestHandler = ecstatic({
 		root: __dirname + "/serve",
 		cache: 0
@@ -148,7 +148,7 @@ test("test setup function", function (t) {
 					message: "data"
 				}
 			}
-		}
+		};
 
 		const uploader = setup.getUploader(uploaderOptions, socket);
 		const uploaderWrapData = setup.getUploader(uploaderWrapDataOptions, socket);

@@ -2,13 +2,13 @@
 /* eslint-disable no-console */
 /* eslint-env node */
 
-var test = require("tape");
-var SocketIOFileUpload = require("../server.js");
-var http = require("http");
-var fs = require("fs");
-var path = require("path");
-var concatStream = require("concat-stream");
-var setup = require("./setup-server");
+const test = require("tape");
+const SocketIOFileUpload = require("../server.js");
+const http = require("http");
+const fs = require("fs");
+const path = require("path");
+const concatStream = require("concat-stream");
+const setup = require("./setup-server");
 
 function serveClientCb(t, server, port) {
 	http.get({
@@ -18,7 +18,7 @@ function serveClientCb(t, server, port) {
 	}, (res) => {
 		const clientJsPath = path.join(__dirname, "../client.min.js");
 		const clientJsStr = fs.readFileSync(clientJsPath, { encoding: "utf8" });
-		res.pipe(concatStream({ encoding: "string" }, function (resString) {
+		res.pipe(concatStream({ encoding: "string" }, (resString) => {
 			t.equal(clientJsStr, resString, "client.min.js is being served");
 			server.close( (err) => {
 				t.notOk(err, "no error");
