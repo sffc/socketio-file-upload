@@ -36,6 +36,9 @@ test("test setup function", function (t) {
 			var uploader = setup.setup(server, function(socket) {
 				socket.once("numSubmitted", function(_numSubmitted) {
 					numSubmitted = _numSubmitted;
+					startFired = 0;
+					completeFired = 0;
+					savedFired = 0;
 					t.ok(numSubmitted, "user submitted " + numSubmitted + " files");
 				});
 			});

@@ -52,6 +52,16 @@ async function run(port) {
 		path.join(__dirname, "assets", "sonnet18.txt")
 	]);
 
+	console.info("Waiting 5 seconds before testing wrap data");
+	setTimeout(async () => {
+		await page.uploadFile("#file-picker-wrap-data", [
+			path.join(__dirname, "assets", "mandrill.png"),
+			path.join(__dirname, "assets", "sonnet18.txt")
+		]);
+	}, 5000);
+
+
+
 	while (true) { // eslint-disable-line no-constant-condition
 		await sleep(500);
 		if (clientError || clientDone) {
