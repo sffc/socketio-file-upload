@@ -148,6 +148,18 @@ var instance = new SocketIOFileUpload(socket);
 
 ### Public Properties and Methods
 
+Each public property can be set up in an object passing at second parameter of the Siofu constructor:
+
+```javascript
+var instance = new SocketIOFileUpload(socket);
+instance.chunkSize = 1024 * 1000
+// is the same that
+var instance = new SocketIOFileUpload(socket, {
+	chunkSize: 1024 * 1000
+});
+```
+
+
 #### instance.listenOnInput(input)
 
 When the user selects a file or files in the specified HTML Input Element, the library will begin to upload that file or those files.
@@ -316,6 +328,112 @@ Set to `true` to instead transmit the data as a serialized octet array.  This wi
 
 *Note:* This option is not supported by Firefox.
 
+#### instance.topicName = "siofu"
+
+Customize the name of the topic where Siofu emit message. Need to be the same that the one specified in the server options.
+
+Can be used in team with instance.wrapData and instance.exposePrivateFunction to use a topic already used for something else.
+
+#### instance.wrapData = false
+
+By default Siofu client send data to different topic depending of the progress of the upload:
+```
+siofu_start
+siofu_progress
+siofu_done
+```
+And received data on:
+```
+siofu_ready
+siofu_chunk
+siofu_complete
+siofu_error
+```
+
+If wrapData is passed to true Siofu client will use only one topic specified by instance.topicName and wrap the data into a parent message.
+ex:
+
+```javascript
+// wrapData false:
+{
+	id: id,
+	success: success,
+	detail: fileInfo.clientDetail
+}
+// wrapData true
+{
+	action: 'complete',
+	message: {
+		id: id,
+		success: success,
+		detail: fileInfo.clientDetail
+	}
+}
+```
+
+You can personalise the 'action' and 'message' key by passing a object to wrapData instance. 
+:warning: IF YOU USE CUSTOM VALUE HERE YOU HAVE TO INVERSE THEM IN THE SIOFU SERVER OPTIONS :warning:
+```javascript
+instance.wrapData = {
+	wrapKey: {
+		action: 'actionType',
+		message: 'data'
+	},
+	unwrapKey: {
+		action: 'actionType',
+		message: 'message'
+	}
+}
+// Send a message like this:
+{
+	actionType: 'complete',
+	data: {
+		id: id,
+		success: success,
+		detail: fileInfo.clientDetail
+	}
+}
+// Expect message like this from the server:
+{
+	actionType: 'complete',
+	message: {
+		id: id,
+		success: success,
+		detail: fileInfo.clientDetail
+	}
+}
+```
+
+It's also possible to add additional data (for strongly typed topic or secure pipeline):
+```javascript
+instance.wrapData = {
+	adtionalData: {
+		userId: '123456',
+	},
+}
+// Send a message like this:
+{
+	userId: '123456',
+	action: 'complete',
+	message: {
+		id: id,
+		success: success,
+		detail: fileInfo.clientDetail
+	}
+}
+```
+
+#### instance.exposePrivateFunction = false
+
+If true this will expose some functions used in intern to personalize action on the topic. This is used alongside with wrapData to add custom check or logic before process the file upload.
+If true you will have access to: 
+```
+instance.chunckCallback
+instance.readyCallback
+instance.completCallback
+instance.errorCallback
+```
+
 ### Events
 
 Instances of the `SocketIOFileUpload` object implement the [W3C `EventTarget` interface](http://www.w3.org/wiki/DOM/domcore/EventTarget).  This means that you can do:
@@ -472,6 +590,112 @@ uploader.uploadValidator = function(event, callback){
         callback(false);
     }
 };
+```
+
+#### instance.topicName = "siofu"
+
+Customize the name of the topic where Siofu emit message. Need to be the same that the one specified in the client options.
+
+Can be used in team with instance.wrapData and instance.exposePrivateFunction to use a topic already used for something else.
+
+#### instance.wrapData = false
+
+By default Siofu server send data to different topic depending of the progress of the upload:
+```
+siofu_ready
+siofu_chunk
+siofu_complete
+siofu_error
+```
+And received data on:
+```
+siofu_start
+siofu_progress
+siofu_done
+```
+
+If wrapData is passed to true Siofu server will use only one topic specified by instance.topicName and wrap the data into a parent message.
+ex:
+
+```javascript
+// wrapData false:
+{
+	id: id,
+	success: success,
+	detail: fileInfo.clientDetail
+}
+// wrapData true
+{
+	action: 'complete',
+	message: {
+		id: id,
+		success: success,
+		detail: fileInfo.clientDetail
+	}
+}
+```
+
+You can personalise the 'action' and 'message' key by passing a object to wrapData instance. 
+:warning: IF YOU USE CUSTOM VALUE HERE YOU HAVE TO INVERSE THEM IN THE SIOFU CLIENT OPTIONS :warning:
+```javascript
+instance.wrapData = {
+	wrapKey: {
+		action: 'actionType',
+		message: 'message'
+	},
+	unwrapKey: {
+		action: 'actionType',
+		message: 'data'
+	}
+}
+// Send a message like this:
+{
+	actionType: 'complete',
+	message: {
+		id: id,
+		success: success,
+		detail: fileInfo.clientDetail
+	}
+}
+// Expect message like this from the client:
+{
+	actionType: 'complete',
+	data: {
+		id: id,
+		success: success,
+		detail: fileInfo.clientDetail
+	}
+}
+```
+
+It's also possible to add additional data (for strongly typed topic or acknowledgement):
+```javascript
+instance.wrapData = {
+	adtionalData: {
+		acknowledgement: true,
+	},
+}
+// Send a message like this:
+{
+	acknowledgement: true,
+	action: 'complete',
+	message: {
+		id: id,
+		success: success,
+		detail: fileInfo.clientDetail
+	}
+}
+```
+
+#### instance.exposePrivateFunction = false
+
+If true this will expose some functions used in intern to personalize action on the topic. This is used alongside with wrapData to add custom check or logic before process the file upload.
+If true you will have access to: 
+```
+instance.chunckCallback
+instance.readyCallback
+instance.completCallback
+instance.errorCallback
 ```
 
 ### Events
