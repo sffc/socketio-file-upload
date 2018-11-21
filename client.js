@@ -181,8 +181,12 @@
 		if(self.wrapData.additionalData) {
 			Object.assign(dataWrapped, self.wrapData.additionalData);
 		}
-		dataWrapped[self.wrapData.wrapKey.message] = data;
-		dataWrapped[self.wrapData.wrapKey.action] = action;
+
+		var actionKey = self.wrapData.wrapKey && typeof self.wrapData.wrapKey.action === "string" ? self.wrapData.wrapKey.action : "action";
+		var messageKey = self.wrapData.wrapKey && typeof self.wrapData.wrapKey.message === "string" ? self.wrapData.wrapKey.message : "message";
+
+		dataWrapped[actionKey] = action;
+		dataWrapped[messageKey] = data;
 		return dataWrapped;
 	};
 
@@ -739,8 +743,11 @@
 				console.log("SocketIOFileUploadClient Error: You choose to wrap your data so the message from the server need to be an object"); // eslint-disable-line no-console
 				return;
 			}
-			var action = message[self.wrapData.unwrapKey.action];
-			var data = message[self.wrapData.unwrapKey.message];
+			var actionKey = self.wrapData.unwrapKey && typeof self.wrapData.unwrapKey.action === "string" ? self.wrapData.unwrapKey.action : "action";
+			var messageKey = self.wrapData.unwrapKey && typeof self.wrapData.unwrapKey.message === "string" ? self.wrapData.unwrapKey.message : "message";
+
+			var action = message[actionKey];
+			var data = message[messageKey];
 			if (!action || !data || !mapActionToCallback[action]) {
 				console.log("SocketIOFileUploadClient Error: You choose to wrap your data but the message from the server is wrong configured. Check the message and your wrapData option"); // eslint-disable-line no-console
 				return;
