@@ -48,7 +48,7 @@
 	}
 	/* eslint-enable no-undef */
 }(this, "SocketIOFileUpload", function () {
- return function (socket) {
+ return function (socket, options) {
 	"use strict";
 
 	var self = this; // avoids context issues
@@ -72,12 +72,123 @@
 		readyCallbacks = {},
 		communicators = {};
 
+	var _getOption = function (key, defaultValue) {
+		if(!options) {
+			return defaultValue;
+		}
+		return options[key] || defaultValue;
+	};
+
 	self.fileInputElementId = "siofu_input_"+window.siofu_global.instances++;
 	self.resetFileInputs = true;
-	self.useText = false;
-	self.serializedOctets = false;
-	self.useBuffer = true;
-	self.chunkSize = 1024 * 100; // 100kb default chunk size
+	self.useText = _getOption("useText", false);
+	self.serializedOctets = _getOption("serializedOctets", false);
+	self.useBuffer = _getOption("useBuffer", true);
+	self.chunkSize = _getOption("chunkSize", 1024 * 100); // 100kb default chunk size
+	self.topicName = _getOption("topicName", "siofu");
+
+	/**
+	* WrapData allow you to wrap the Siofu messages into a predefined format.
+	* You can then easily use Siofu packages even in strongly typed topic.
+	* wrapData can be a boolean or an object. It is false by default.
+	* If wrapData is true it will allow you to send all the messages to only one topic by wrapping the siofu actions and messages.
+	*
+	* ex:
+	{
+		action: 'complete',
+		message: {
+		 id: id,
+		 success: success,
+		 detail: fileInfo.clientDetail
+		}
+	}
+	*
+	* If wrapData is an object constituted of two mandatory key and one optional:
+	* wrapKey and unwrapKey (mandatory): Corresponding to the key used to wrap the siofu data and message
+	* additionalData (optional): Corresponding to the data to send along with file data
+	*
+	* ex:
+	* if wrapData = {
+		wrapKey: {
+			action: 'actionType',
+			message: 'data'
+		},
+		unwrapKey: {
+			action: 'actionType',
+			message: 'message'
+		},
+		additionalData: {
+			acknowledgement: true
+		}
+	}
+	* When Siofu will send for example a complete message this will send:
+	*
+	{
+		acknowledgement: true,
+		actionType: 'complete',
+		data: {
+		 id: id,
+		 success: success,
+		 detail: fileInfo.clientDetail
+		}
+	}
+	* and it's waiting from client data formatted like this:
+	*
+	{
+		actionType: '...',
+		message: {...}
+	}
+	* /!\ If wrapData is wrong configured is interpreted as false /!\
+	*/
+	self.wrapData = _getOption("wrapData", false);
+
+	var _isWrapDataWellConfigured = function () {
+		if (typeof self.wrapData === "boolean") {
+			return true;
+		}
+		if (typeof self.wrapData !== "object" || Array.isArray(self.wrapData)) {
+			return false;
+		}
+
+		if(!self.wrapData.wrapKey || typeof self.wrapData.wrapKey.action !== "string" || typeof self.wrapData.wrapKey.message !== "string" ||
+			!self.wrapData.unwrapKey || typeof self.wrapData.unwrapKey.action !== "string" || typeof self.wrapData.unwrapKey.message !== "string") {
+			return false;
+		}
+
+		return true;
+	};
+
+
+	/**
+	 * Allow user to access to some private function to customize message reception.
+	 * This is used if you specified wrapOptions on the client side and have to manually bind message to callback.
+	 */
+	self.exposePrivateFunction = _getOption("exposePrivateFunction", false);
+
+	var _getTopicName = function (topicExtension) {
+		if (self.wrapData) {
+			return self.topicName;
+		}
+
+		return self.topicName + topicExtension;
+	};
+
+	var _wrapData = function (data, action) {
+		if(!_isWrapDataWellConfigured() || !self.wrapData) {
+			return data;
+		}
+		var dataWrapped = {};
+		if(self.wrapData.additionalData) {
+			Object.assign(dataWrapped, self.wrapData.additionalData);
+		}
+
+		var actionKey = self.wrapData.wrapKey && typeof self.wrapData.wrapKey.action === "string" ? self.wrapData.wrapKey.action : "action";
+		var messageKey = self.wrapData.wrapKey && typeof self.wrapData.wrapKey.message === "string" ? self.wrapData.wrapKey.message : "message";
+
+		dataWrapped[actionKey] = action;
+		dataWrapped[messageKey] = data;
+		return dataWrapped;
+	};
 
 	/**
 	 * Private method to dispatch a custom event on the instance.
@@ -180,28 +291,30 @@
 					}
 				}
 				catch (error) {
-					socket.emit("siofu_done", {
+					socket.emit(_getTopicName("_done"), _wrapData({
 						id: id,
 						interrupt: true
-					});
+					}, "done"));
 					return;
 				}
 			}
-			socket.emit("siofu_progress", {
+
+			// TODO override the send data
+			socket.emit(_getTopicName("_progress"), _wrapData({
 				id: id,
 				size: file.size,
 				start: start,
 				end: end,
 				content: content,
 				base64: isBase64
-			});
+			}, "progress"));
 		};
 
 		// Callback when tranmission is complete.
 		var transmitDone = function () {
-			socket.emit("siofu_done", {
+			socket.emit(_getTopicName("_done"), _wrapData({
 				id: id
-			});
+			}, "done"));
 		};
 
 		// Load a "chunk" of the file from offset to offset+chunkSize.
@@ -256,31 +369,31 @@
 
 		// Listen for an "error" event.  Stop the transmission if one is received.
 		_listenTo(reader, "error", function () {
-			socket.emit("siofu_done", {
+			socket.emit(_getTopicName("_done"), _wrapData({
 				id: id,
 				interrupt: true
-			});
+			}, "done"));
 			_stopListeningTo(reader, "load", loadCb);
 		});
 
 		// Do the same for the "abort" event.
 		_listenTo(reader, "abort", function () {
-			socket.emit("siofu_done", {
+			socket.emit(_getTopicName("_done"), _wrapData({
 				id: id,
 				interrupt: true
-			});
+			}, "done"));
 			_stopListeningTo(reader, "load", loadCb);
 		});
 
 		// Transmit the "start" message to the server.
-		socket.emit("siofu_start", {
+		socket.emit(_getTopicName("_start"), _wrapData({
 			name: file.name,
 			mtime: file.lastModified,
 			meta: file.meta,
 			size: file.size,
 			encoding: useText ? "text" : "octet",
 			id: id
-		});
+		}, "start"));
 
 		// To avoid a race condition, we don't want to start transmitting to the
 		// server until the server says it is ready.
@@ -584,27 +697,27 @@
 		return base64;
 	};
 	// END OTHER LIBRARIES
-
-	// CONSTRUCTOR: Listen to the "complete", "ready", and "error" messages
-	// on the socket.
-	_listenTo(socket, "siofu_chunk", function(data){
+	var _chunckCallback = function(data) {
 		if ( chunkCallbacks[data.id] )
 			chunkCallbacks[data.id]();
-	});
-	_listenTo(socket, "siofu_ready", function (data) {
-		if ( readyCallbacks[data.id] )
+	};
+
+	var _readyCallback = function (data) {
+		if (readyCallbacks[data.id])
 			readyCallbacks[data.id](data.name);
-	});
-	_listenTo(socket, "siofu_complete", function (data) {
-		if ( uploadedFiles[data.id] ) {
+	};
+
+	var _completCallback = function (data) {
+		if (uploadedFiles[data.id]) {
 			_dispatch("complete", {
 				file: uploadedFiles[data.id],
 				detail: data.detail,
 				success: data.success
 			});
 		}
-	});
-	_listenTo(socket, "siofu_error", function (data) {
+	};
+
+	var _errorCallback = function (data) {
 		if ( uploadedFiles[data.id] ) {
 			_dispatch("error", {
 				file: uploadedFiles[data.id],
@@ -613,6 +726,46 @@
 			});
 			if (communicators) communicators[data.id].abort = true;
 		}
-	});
+	};
+
+	// CONSTRUCTOR: Listen to the "complete", "ready", and "error" messages
+	// on the socket.
+	if (_isWrapDataWellConfigured() && self.wrapData) {
+		var mapActionToCallback = {
+			chunk: _chunckCallback,
+			ready: _readyCallback,
+			complete: _completCallback,
+			error: _errorCallback
+		};
+
+		_listenTo(socket, _getTopicName(), function (message) {
+			if (typeof message !== "object") {
+				console.log("SocketIOFileUploadClient Error: You choose to wrap your data so the message from the server need to be an object"); // eslint-disable-line no-console
+				return;
+			}
+			var actionKey = self.wrapData.unwrapKey && typeof self.wrapData.unwrapKey.action === "string" ? self.wrapData.unwrapKey.action : "action";
+			var messageKey = self.wrapData.unwrapKey && typeof self.wrapData.unwrapKey.message === "string" ? self.wrapData.unwrapKey.message : "message";
+
+			var action = message[actionKey];
+			var data = message[messageKey];
+			if (!action || !data || !mapActionToCallback[action]) {
+				console.log("SocketIOFileUploadClient Error: You choose to wrap your data but the message from the server is wrong configured. Check the message and your wrapData option"); // eslint-disable-line no-console
+				return;
+			}
+			mapActionToCallback[action](data);
+		});
+	} else {
+		_listenTo(socket, _getTopicName("_chunk"), _chunckCallback);
+		_listenTo(socket, _getTopicName("_ready"), _readyCallback);
+		_listenTo(socket, _getTopicName("_complete"), _completCallback);
+		_listenTo(socket, _getTopicName("_error"), _errorCallback);
+	}
+
+	if (this.exposePrivateFunction) {
+		this.chunckCallback = _chunckCallback;
+		this.readyCallback = _readyCallback;
+		this.completCallback = _completCallback;
+		this.errorCallback = _errorCallback;
+	}
  };
 }));

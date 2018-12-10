@@ -19,22 +19,22 @@ async function run(port) {
 
 	const instance = await phantom.create();
 	const page = await instance.createPage();
-	await page.on("onResourceRequested", function(requestData) {
+	await page.on("onResourceRequested", (requestData) => {
 		console.info("requesting:", requestData.url);
 	});
-	await page.on("onConsoleMessage", function(message) {
+	await page.on("onConsoleMessage", (message) => {
 		console.log("browser:", message);
 	});
-	await page.on("onError", function(message, trace) {
+	await page.on("onError", (message, trace) => {
 		if (!clientError) {
-			var traceString = "";
-			for (var i=0; i<trace.length; i++) {
+			let traceString = "";
+			for (let i=0; i<trace.length; i++) {
 				traceString += JSON.stringify(trace[i]);
 			}
 			clientError = new Error(message + "\n\n" + traceString + "\n\n");
 		}
 	});
-	await page.on("onAlert", function(message) {
+	await page.on("onAlert", (message) => {
 		if (message.substr(0, 5) === "done:") {
 			clientDone = true;
 		} else if (!clientFailure) {
@@ -51,6 +51,16 @@ async function run(port) {
 		path.join(__dirname, "assets", "mandrill.png"),
 		path.join(__dirname, "assets", "sonnet18.txt")
 	]);
+
+	console.info("Waiting 5 seconds before testing wrap data");
+	setTimeout(async () => {
+		await page.uploadFile("#file-picker-wrap-data", [
+			path.join(__dirname, "assets", "mandrill.png"),
+			path.join(__dirname, "assets", "sonnet18.txt")
+		]);
+	}, 5000);
+
+
 
 	while (true) { // eslint-disable-line no-constant-condition
 		await sleep(500);
