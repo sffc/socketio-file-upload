@@ -361,7 +361,7 @@ siofu_error
 
 If wrapData is set to true, Siofu will use only one topic specified by instance.topicName and wrap the data into a parent message.
 
-The following examples are example settings for the client. However, :warning: IF YOU USE `wrapData` ON THE CLIENT, YOU MUST ALSO USE IT ON THE SERVER :warning:
+The following examples are example settings for the client. :warning: IF YOU USE `wrapData` ON THE CLIENT, YOU MUST ALSO USE IT ON THE SERVER. :warning:
 
 ex:
 
@@ -383,7 +383,7 @@ ex:
 }
 ```
 
-You can personalise the 'action' and 'message' key by passing a object to wrapData instance.
+You can personalise the 'action' and 'message' key by passing a object to wrapData instance. The settings on the server should be the inverse of the settings on the client. For example, if the client has wrapData.wrapKey.message = "data", then the server should have wrapData.unwrapKey.message = "data".
 
 ```javascript
 instance.wrapData = {

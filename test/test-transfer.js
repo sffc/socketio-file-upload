@@ -46,8 +46,6 @@ function _testUploader(t, uploader, callbackFileSavedAndUnlink) {
 		t.ok(ev.file.success, "Successful upload " + evtos(ev));
 	});
 
-	// Currently the test hangs right here!
-
 	uploader.on("saved", (ev) => {
 		t.ok(++savedFired <= startFired, "'saved' event has not fired too many times " + evtos(ev));
 		t.ok(ev.file.success, "Successful save " + evtos(ev));
@@ -155,15 +153,15 @@ test("test setup function", (t) => {
 
 		_testUploader(t, uploader, (startFired, completeFired, savedFired, ev) => {
 			if (numSubmitted > 0 && savedFired >= numSubmitted) {
-				t.equal(completeFired, startFired, "'complete' event fired the right number of times " + evtos(ev));
-				t.equal(savedFired, startFired, "'saved' event fired the right number of times " + evtos(ev));
+				t.equal(completeFired, startFired, "wrapData=false: 'complete' event fired the right number of times " + evtos(ev));
+				t.equal(savedFired, startFired, "wrapData=false: 'saved' event fired the right number of times " + evtos(ev));
 			}
 		});
 
 		_testUploader(t, uploaderWrapData, (startFired, completeFired, savedFired, ev) => {
 			if (numSubmitted > 0 && savedFired >= numSubmitted) {
-				t.equal(completeFired, startFired, "'complete' event fired the right number of times " + evtos(ev));
-				t.equal(savedFired, startFired, "'saved' event fired the right number of times " + evtos(ev));
+				t.equal(completeFired, startFired, "wrapData=true: 'complete' event fired the right number of times " + evtos(ev));
+				t.equal(savedFired, startFired, "wrapData=true: 'saved' event fired the right number of times " + evtos(ev));
 			}
 		});
 	});

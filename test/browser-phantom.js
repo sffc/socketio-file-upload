@@ -47,30 +47,22 @@ async function run(port) {
 		await instance.exit();
 		return new Error("Not able to load test page: " + status);
 	}
+	console.info("phantom-runner: Uploading files to #file-picker")
 	await page.uploadFile("#file-picker", [
 		path.join(__dirname, "assets", "mandrill.png"),
 		path.join(__dirname, "assets", "sonnet18.txt")
 	]);
 
-	console.info("Waiting 5 seconds before testing wrap data");
-	setTimeout(async () => {
-		await page.uploadFile("#file-picker-wrap-data", [
-			path.join(__dirname, "assets", "mandrill.png"),
-			path.join(__dirname, "assets", "sonnet18.txt")
-		]);
-	}, 5000);
-
-
-
-	while (true) { // eslint-disable-line no-constant-condition
-		await sleep(500);
-		if (clientError || clientDone) {
-			break;
-		}
-	}
+	console.info("phantom-runner: Waiting 5 seconds before testing wrap data");
+	await sleep(5000);
+	console.info("phantom-runner: Uploading files to #file-picker-wrap-data");
+	await page.uploadFile("#file-picker-wrap-data", [
+		path.join(__dirname, "assets", "mandrill.png"),
+		path.join(__dirname, "assets", "sonnet18.txt")
+	]);
 
 	await instance.exit();
-	return clientError || clientFailure;
+	return clientError || clientFailure || (!clientDone && "browser did not finish all tests");
 }
 
 module.exports = function(port, callback) {
