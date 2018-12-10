@@ -14,8 +14,10 @@ async function run(port) {
 	let clientError = null;
 
 	// Page will alert when done or failure
-	let clientFailure = null;
-	let clientDone = false;
+	let resolveDonePromise;
+	let donePromise = new Promise((resolve) => {
+		resolveDonePromise = resolve;
+	});
 
 	const instance = await phantom.create();
 	const page = await instance.createPage();
@@ -35,11 +37,11 @@ async function run(port) {
 		}
 	});
 	await page.on("onAlert", (message) => {
-		if (message.substr(0, 5) === "done:") {
-			clientDone = true;
-		} else if (!clientFailure) {
-			clientFailure = message;
+		console.info("alert:", message);
+		if (message.substr(0, 5) !== "done:") {
+			clientError = clientError || message;
 		}
+		resolveDonePromise();
 	});
 
 	const status = await page.open("http://127.0.0.1:" + port);
@@ -53,16 +55,17 @@ async function run(port) {
 		path.join(__dirname, "assets", "sonnet18.txt")
 	]);
 
-	console.info("phantom-runner: Waiting 5 seconds before testing wrap data");
-	await sleep(5000);
+	console.info("phantom-runner: Waiting 3 seconds before testing wrap data");
+	await sleep(3000);
 	console.info("phantom-runner: Uploading files to #file-picker-wrap-data");
 	await page.uploadFile("#file-picker-wrap-data", [
 		path.join(__dirname, "assets", "mandrill.png"),
 		path.join(__dirname, "assets", "sonnet18.txt")
 	]);
 
+	await donePromise;
 	await instance.exit();
-	return clientError || clientFailure || (!clientDone && "browser did not finish all tests");
+	return clientError;
 }
 
 module.exports = function(port, callback) {
