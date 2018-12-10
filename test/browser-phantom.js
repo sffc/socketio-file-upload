@@ -49,7 +49,7 @@ async function run(port) {
 		await instance.exit();
 		return new Error("Not able to load test page: " + status);
 	}
-	console.info("phantom-runner: Uploading files to #file-picker")
+	console.info("phantom-runner: Uploading files to #file-picker");
 	await page.uploadFile("#file-picker", [
 		path.join(__dirname, "assets", "mandrill.png"),
 		path.join(__dirname, "assets", "sonnet18.txt")

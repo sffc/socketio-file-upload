@@ -137,7 +137,7 @@ function runTest(t, isWrapData) {
 		client.destroy();
 		t.end();
 	});
-};
+}
 
 test("basic functionality", function (t) {
 	runTest(t, false);
