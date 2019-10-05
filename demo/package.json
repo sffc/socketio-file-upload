@@ -6,7 +6,7 @@
   "dependencies": {
     "express": "^4.14.0",
     "socket.io": "^2.0.2",
-    "snyk": "^1.105.0"
+    "snyk": "^1.231.0"
   },
   "scripts": {
     "snyk-protect": "snyk protect",
