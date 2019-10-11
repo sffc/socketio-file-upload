@@ -626,7 +626,7 @@
 	 *                              event as an argument when the event occurs.
 	 * @return {void}
 	 */
-	this.addEventListener = (eventName, callback) => {
+	this.addEventListener = function (eventName, callback) {
 		if (!callbacks[eventName]) callbacks[eventName] = [];
 		callbacks[eventName].push(callback);
 	};
@@ -637,9 +637,9 @@
 	 * @param  {Function} callback  Listener function to remove.
 	 * @return {boolean}            true if callback removed; false otherwise
 	 */
-	this.removeEventListener = (eventName, callback) => {
+	this.removeEventListener = function (eventName, callback) {
 		if (!callbacks[eventName]) return false;
-		for (let i = 0; i < callbacks[eventName].length; i++) {
+		for (var i = 0; i < callbacks[eventName].length; i++) {
 			if (callbacks[eventName][i] === callback) {
 				callbacks[eventName].splice(i, 1);
 				return true;
@@ -653,12 +653,12 @@
 	 * @param  {Event} evnt The event to dispatch.
 	 * @return {boolean} false if any callback returned false; true otherwise
 	 */
-	this.dispatchEvent =  evnt => {
-		let eventCallbacks = callbacks[evnt.type];
+	this.dispatchEvent = function (evnt) {
+		var eventCallbacks = callbacks[evnt.type];
 		if (!eventCallbacks) return true;
-		let retVal = true;
-		for (let i = 0; i < eventCallbacks.length; i++) {
-			let callbackResult = eventCallbacks[i](evnt);
+		var retVal = true;
+		for (var i = 0; i < eventCallbacks.length; i++) {
+			var callbackResult = eventCallbacks[i](evnt);
 			if (callbackResult === false) {
 				retVal = false;
 			}
@@ -676,8 +676,8 @@
 	 *
 	 * Adapted for SocketIOFileUpload.
 	 */
-	let _uint8ArrayToBase64 =  bytes => {
-		let i, len = bytes.buffer.byteLength, base64 = "",
+	var _uint8ArrayToBase64 = function (bytes) {
+		var i, len = bytes.buffer.byteLength, base64 = "",
 			chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
 		for (i = 0; i < len; i += 3) {
@@ -697,17 +697,17 @@
 		return base64;
 	};
 	// END OTHER LIBRARIES
-	let _chunckCallback = data => {
+	var _chunckCallback = function(data) {
 		if ( chunkCallbacks[data.id] )
 			chunkCallbacks[data.id]();
 	};
 
-	let _readyCallback =  data => {
+	var _readyCallback = function (data) {
 		if (readyCallbacks[data.id])
 			readyCallbacks[data.id](data.name);
 	};
 
-	let _completCallback =  data => {
+	var _completCallback = function (data) {
 		if (uploadedFiles[data.id]) {
 			_dispatch("complete", {
 				file: uploadedFiles[data.id],
@@ -717,7 +717,7 @@
 		}
 	};
 
-	let _errorCallback =  data => {
+	var _errorCallback = function (data) {
 		if ( uploadedFiles[data.id] ) {
 			_dispatch("error", {
 				file: uploadedFiles[data.id],
@@ -731,7 +731,7 @@
 	// CONSTRUCTOR: Listen to the "complete", "ready", and "error" messages
 	// on the socket.
 	if (_isWrapDataWellConfigured() && self.wrapData) {
-		let mapActionToCallback = {
+		var mapActionToCallback = {
 			chunk: _chunckCallback,
 			ready: _readyCallback,
 			complete: _completCallback,
@@ -743,11 +743,11 @@
 				console.log("SocketIOFileUploadClient Error: You choose to wrap your data so the message from the server need to be an object"); // eslint-disable-line no-console
 				return;
 			}
-			let actionKey = self.wrapData.unwrapKey && typeof self.wrapData.unwrapKey.action === "string" ? self.wrapData.unwrapKey.action : "action";
-			let messageKey = self.wrapData.unwrapKey && typeof self.wrapData.unwrapKey.message === "string" ? self.wrapData.unwrapKey.message : "message";
+			var actionKey = self.wrapData.unwrapKey && typeof self.wrapData.unwrapKey.action === "string" ? self.wrapData.unwrapKey.action : "action";
+			var messageKey = self.wrapData.unwrapKey && typeof self.wrapData.unwrapKey.message === "string" ? self.wrapData.unwrapKey.message : "message";
 
-			let action = message[actionKey];
-			let data = message[messageKey];
+			var action = message[actionKey];
+			var data = message[messageKey];
 			if (!action || !data || !mapActionToCallback[action]) {
 				console.log("SocketIOFileUploadClient Error: You choose to wrap your data but the message from the server is wrong configured. Check the message and your wrapData option"); // eslint-disable-line no-console
 				return;
