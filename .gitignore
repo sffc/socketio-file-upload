@@ -3,6 +3,3 @@ demo/node_modules/
 demo/uploads/
 test/serve/bundle.js
 .idea
-
-# Ignore package-lock.json in libraries
-package-lock.json

@@ -1,8 +1,9 @@
+dist: trusty
 language: node_js
 node_js:
   - '8'
 install:
-  - npm install
+  - npm ci
 script:
   - X_USE_PHANTOM=1 npm test
   - npm run lint
