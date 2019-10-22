@@ -15,7 +15,7 @@
     "chrome-location": "^1.2.1",
     "concat-stream": "^1.5.0",
     "ecstatic": "^2.0.0",
-    "eslint": "^5.6.1",
+    "eslint": "^5.16.0",
     "google-closure-compiler": "^20181028.0.1",
     "phantom": "^6.0.3",
     "socket.io": "^2.1.1",
