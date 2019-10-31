@@ -675,7 +675,7 @@ var _serve = function (res) {
  * @param  {HTTPServer} app Your HTTP server
  * @return {void}
  */
-SocketIOFileUploadServer.listen = function (app) {
+SocketIOFileUploadServer.listen = app => {
 	"use strict";
 
 	app.on("request", function (req, res) {
@@ -694,7 +694,7 @@ SocketIOFileUploadServer.listen = function (app) {
  *
  * You should not need to ever call this function.
  */
-SocketIOFileUploadServer.router = function (req, res, next) {
+SocketIOFileUploadServer.router = (req, res, next) => {
 	"use strict";
 
 	if (req.url === SocketIOFileUploadServer.clientPath) {
