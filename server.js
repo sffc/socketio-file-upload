@@ -73,7 +73,7 @@ function SocketIOFileUploadServer(options) {
 	 * file is larger than the internal buffer size, or it could mean that the
 	 * file upload triggered an ENOSPC error.
 	 */
-	self.emitChunkFail = _getOption("maxFileSize", false);
+	self.emitChunkFail = _getOption("emitChunkFail", false);
 
 	/**
 	 * Specify the topic to listen on.
