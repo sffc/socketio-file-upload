@@ -99,6 +99,7 @@ That's all you need to get started.  For the detailed API, continue reading belo
     - [SocketIOFileUpload.listen(app)](#socketiofileuploadlistenapp)
     - [SocketIOFileUpload.router](#socketiofileuploadrouter)
     - [instance.listen(socket)](#instancelistensocket)
+    - [instance.close(socket)](#instanceclosesocket)
     - [instance.abort(id, socket)](#instanceabortid-socket)
     - [instance.dir = "/path/to/upload/directory"](#instancedir--pathtouploaddirectory)
     - [instance.mode = "0666"](#instancemode--0666)
@@ -438,7 +439,7 @@ instance.wrapData = {
 #### instance.exposePrivateFunction = false
 
 If true this will expose some functions used in intern to personalize action on the topic. This is used alongside with wrapData to add custom check or logic before process the file upload.
-If true you will have access to: 
+If true you will have access to:
 ```
 instance.chunckCallback
 instance.readyCallback
@@ -554,6 +555,18 @@ Listen for uploads occuring on this Socket.IO socket.
 io.sockets.on("connection", function(socket){
     var uploader = new SocketIOFileUpload();
     uploader.listen(socket);
+});
+```
+
+#### instance.listen(socket)
+
+No longer listen for uploads occuring on this Socket.IO socket.
+
+```javascript
+io.sockets.on("connection", function(socket){
+    var uploader = new SocketIOFileUpload();
+    uploader.listen(socket);
+    uploader.close(socket);
 });
 ```
 
