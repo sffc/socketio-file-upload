@@ -558,7 +558,7 @@ io.sockets.on("connection", function(socket){
 });
 ```
 
-#### instance.listen(socket)
+#### instance.close(socket)
 
 No longer listen for uploads occuring on this Socket.IO socket.
 
