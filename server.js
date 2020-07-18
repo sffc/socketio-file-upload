@@ -633,8 +633,8 @@ function SocketIOFileUploadServer(options) {
 			socket.removeAllListeners(self.topicName + "_progress");
 			socket.removeAllListeners(self.topicName + "_done");
 		}
-
 		socket.off("disconnect", self.functions.disconnect[socket.id]);
+		self.functions.disconnect[socket.id]();
 	};
 
 
