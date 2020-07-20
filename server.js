@@ -575,6 +575,7 @@ function SocketIOFileUploadServer(options) {
 					return;
 				}
 			}
+			delete self.functions.disconnect[socket.id];
 		};
 	};
 
