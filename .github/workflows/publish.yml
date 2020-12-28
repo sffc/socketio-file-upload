@@ -1,0 +1,31 @@
+name: Publish Release
+on:
+  push:
+    branches:
+      - master
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v1
+      - uses: actions/setup-node@v1
+        with:
+          node-version: 10.x
+      - run: npm ci
+      - run: npm test
+      - uses: JS-DevTools/npm-publish@v1
+        name: Publish to npm
+        id: publish
+        with:
+          token: ${{ secrets.NPM_AUTH_TOKEN }}
+      - if: steps.publish.outputs.type != 'none'
+        name: Create GitHub Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: "v${{ steps.publish.outputs.version }}"
+          release_name: Release ${{ steps.publish.outputs.version }}
+          draft: true
+          prerelease: false
