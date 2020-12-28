@@ -14,7 +14,7 @@
     "buffer-equals": "^1.0.3",
     "chrome-location": "^1.2.1",
     "concat-stream": "^1.6.2",
-    "ecstatic": "^2.0.0",
+    "ecstatic": "^4.1.4",
     "eslint": "^5.16.0",
     "google-closure-compiler": "^20181028.0.1",
     "phantom": "^6.3.0",
