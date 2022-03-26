@@ -82,6 +82,19 @@ function SocketIOFileUploadServer(options) {
 	self.topicName = _getOption("topicName", "siofu");
 
 	/**
+	 * Object for keeping the references to bound functions
+	 * This is neccessary because the disconnect listener key
+	 * is not unique.
+	 */
+	self.functions = {
+		//		"start" : {},
+		//		"progress" : {},
+		//		"complete" : {},
+		"disconnect" : {}
+	};
+
+
+	/**
 	 * WrapData allow you to wrap the Siofu messages into a predefined format.
 	 * You can then easily use Siofu packages even in strongly typed topic.
 	 * wrapData can be a boolean or an object. It is false by default.
@@ -602,9 +615,29 @@ function SocketIOFileUploadServer(options) {
 			socket.on(self.topicName + "_progress", _uploadProgress(socket));
 			socket.on(self.topicName + "_done", _uploadDone(socket));
 		}
-
-		socket.on("disconnect", _onDisconnect(socket));
+		self.functions.disconnect[socket.id] = _onDisconnect(socket);
+		socket.on("disconnect", self.functions.disconnect[socket.id]);
 	};
+
+	/**
+	 * Public method.  Undo listening from listen method.
+	 *
+	 * @param  {Socket} socket The socket on which not to listen anymore
+	 * @return {void}
+	 */
+	this.close = function (socket) {
+		if(_isWrapDataWellConfigured() && self.wrapData)
+			socket.removeAllListeners(self.topicName);
+		else {
+			socket.removeAllListeners(self.topicName + "_start");
+			socket.removeAllListeners(self.topicName + "_progress");
+			socket.removeAllListeners(self.topicName + "_done");
+		}
+		socket.off("disconnect", self.functions.disconnect[socket.id]);
+		self.functions.disconnect[socket.id]();
+		delete self.functions.disconnect[socket.id];
+	};
+
 
 	/**
 	 * Public method.  Abort an upload that may be in progress.  Throws an
