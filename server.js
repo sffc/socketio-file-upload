@@ -1,3 +1,4 @@
+/// <reference path="./server.d.ts" />
 /*
  *                      Copyright (C) 2013 Shane Carr
  *                               X11 License

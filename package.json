@@ -10,6 +10,8 @@
   ],
   "dependencies": {},
   "devDependencies": {
+    "@types/express": "^4.17.17",
+    "@types/socket.io": "^3.0.2",
     "browserify": "^16.5.1",
     "buffer-equals": "^1.0.3",
     "chrome-location": "^1.2.1",
@@ -20,7 +22,8 @@
     "phantom": "^6.3.0",
     "socket.io": "=2.4.0",
     "socket.io-client": "=2.1.1",
-    "tape": "^4.13.3"
+    "tape": "^4.13.3",
+    "typescript": "^4.9.5"
   },
   "files": [
     "client.js",
