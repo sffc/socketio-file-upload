@@ -1,7 +1,6 @@
-// External modules
 import { Router }      from 'express';
 import { WriteStream } from 'fs';
-import { Socket }      from 'socket.io';
+import { Socket }      from 'socket.io-client';
 
 export type SocketIOFileUploadClientOptions =
 {
