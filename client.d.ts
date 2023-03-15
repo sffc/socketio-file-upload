@@ -1,6 +1,4 @@
-import { Router }      from 'express';
-import { WriteStream } from 'fs';
-import { Socket }      from 'socket.io-client';
+import { Socket } from 'socket.io-client';
 
 export type SocketIOFileUploadClientOptions =
 {
