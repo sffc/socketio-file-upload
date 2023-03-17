@@ -124,7 +124,7 @@ export type SocketIOFileUploadClientStart<Metadata> =
 
 export type SocketIOFileUploadClientProgress<Metadata> =
 {
-  file: SocketIOFileUploadClientStart<Metadata>
+  file: SocketIOFileUploadClientStart<Metadata>['file']
 
   /**
    * The number of bytes that have been loaded into memory.
@@ -139,7 +139,7 @@ export type SocketIOFileUploadClientProgress<Metadata> =
 
 export type SocketIOFileUploadClientLoad<Metadata> =
 {
-  file: SocketIOFileUploadClientStart<Metadata>
+  file: SocketIOFileUploadClientStart<Metadata>['file']
 
   /**
    * An instance of a W3C FileReader object.
@@ -154,7 +154,7 @@ export type SocketIOFileUploadClientLoad<Metadata> =
 
 export type SocketIOFileUploadClientComplete<Metadata> =
 {
-  file: SocketIOFileUploadClientStart<Metadata>
+  file: SocketIOFileUploadClientStart<Metadata>['file']
 
   /**
    * `true` if the server-side implementation ran without error; `false` otherwise.
@@ -169,7 +169,7 @@ export type SocketIOFileUploadClientComplete<Metadata> =
 
 export type SocketIOFileUploadClientError<Metadata> =
 {
-  file: SocketIOFileUploadClientStart<Metadata>
+  file: SocketIOFileUploadClientStart<Metadata>['file']
 
   /**
    * The error message.
