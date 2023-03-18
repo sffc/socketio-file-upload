@@ -107,13 +107,13 @@ export type FileUploadErrorEvent<Metadata> =
   file : FileUploadExtendedEvent<Metadata>['file']
 }
 
-export type FileInfo<T> = {
+export type FileInfo<Metadata, ClientDetail> = {
   file: {
     name: string,
     mtime: Date,
     encoding: 'text' | 'octet',
-    clientDetail: T,
-    meta: T,
+    clientDetail: ClientDetail,
+    meta: Metadata,
     id: number,
     size: number,
     bytesLoaded: number,
@@ -163,7 +163,7 @@ export declare interface SocketIOFileUploadServer<Metadata>
   on(event: 'error', listener: (error: FileUploadErrorEvent<Metadata>) => void): this;
 }
 
-export class SocketIOFileUploadServer<Metadata = unknown> extends EventEmitter
+export class SocketIOFileUploadServer<Metadata = unknown, ClientDetail = unknown> extends EventEmitter
 {
   constructor(socket: Socket);
 
@@ -289,7 +289,7 @@ export class SocketIOFileUploadServer<Metadata = unknown> extends EventEmitter
    * @param event contains { file: fileInfo }
    * @param callback call it with true to start upload, false to abort
    */
-  uploadValidator(event: { file: FileInfo }, callback: (valid: boolean) => void): void
+  uploadValidator(event: FileInfo<Metadata, ClientDetail>, callback: (valid: boolean) => void): void
 
   /**
    * Listen for uploads occuring on this Socket.IO socket.

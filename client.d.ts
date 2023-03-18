@@ -151,7 +151,7 @@ export type SocketIOFileUploadClientLoad<Metadata> =
   name: string
 }
 
-export type SocketIOFileUploadClientComplete<Metadata> =
+export type SocketIOFileUploadClientComplete<Metadata, ClientDetail> =
 {
   file: SocketIOFileWithMetadata<Metadata>
 
@@ -163,7 +163,7 @@ export type SocketIOFileUploadClientComplete<Metadata> =
   /**
    * The value of file.clientDetail on the server side. Properties may be added to this object literal during any event on the server side.
    */
-  detail: Metadata
+  detail: ClientDetail
 }
 
 export type SocketIOFileUploadClientError<Metadata> =
@@ -181,7 +181,7 @@ export type SocketIOFileUploadClientError<Metadata> =
   code: string
 }
 
-export declare interface SocketIOFileUploadClient<Metadata>
+export declare interface SocketIOFileUploadClient<Metadata, ClientDetail>
 {
   addEventListener(type: string, callback: EventListenerOrEventListenerObject|null, options?: boolean|AddEventListenerOptions): void;
 
@@ -223,7 +223,7 @@ export declare interface SocketIOFileUploadClient<Metadata>
    * @param listener
    * @param options
    */
-  addEventListener(type: 'complete', callback: (event: SocketIOFileUploadClientComplete<Metadata>) => void, options?: AddEventListenerOptions|boolean): void;
+  addEventListener(type: 'complete', callback: (event: SocketIOFileUploadClientComplete<Metadata, ClientDetail>) => void, options?: AddEventListenerOptions|boolean): void;
 
   /**
    * The server encountered an error.
@@ -234,7 +234,7 @@ export declare interface SocketIOFileUploadClient<Metadata>
   addEventListener(type: 'error', callback: (event: SocketIOFileUploadClientError<Metadata>) => void, options?: AddEventListenerOptions|boolean): void;
 }
 
-export class SocketIOFileUploadClient<Metadata = unknown> implements EventTarget extends SocketIOFileUploadClientOptions
+export class SocketIOFileUploadClient<Metadata = unknown, ClientDetail = unknown> implements EventTarget extends SocketIOFileUploadClientOptions
 {
   constructor(socket: Socket, options?: Partial<SocketIOFileUploadClientOptionsProps>);
 
