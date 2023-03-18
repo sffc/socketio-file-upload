@@ -109,6 +109,7 @@ export abstract class SocketIOFileUploadClientOptions {
 	 */
   exposePrivateFunction: boolean
 }
+export type SocketIOFileWithMetadata<Metadata> = File & { meta: Metadata }
 
 export type SocketIOFileUploadClientChoose =
 {
@@ -117,14 +118,12 @@ export type SocketIOFileUploadClientChoose =
 
 export type SocketIOFileUploadClientStart<Metadata> =
 {
-  file: File & {
-    meta: Metadata
-  }
+  file: SocketIOFileWithMetadata<Metadata>
 }
 
 export type SocketIOFileUploadClientProgress<Metadata> =
 {
-  file: SocketIOFileUploadClientStart<Metadata>['file']
+  file: SocketIOFileWithMetadata<Metadata>
 
   /**
    * The number of bytes that have been loaded into memory.
@@ -139,7 +138,7 @@ export type SocketIOFileUploadClientProgress<Metadata> =
 
 export type SocketIOFileUploadClientLoad<Metadata> =
 {
-  file: SocketIOFileUploadClientStart<Metadata>['file']
+  file: SocketIOFileWithMetadata<Metadata>
 
   /**
    * An instance of a W3C FileReader object.
@@ -154,7 +153,7 @@ export type SocketIOFileUploadClientLoad<Metadata> =
 
 export type SocketIOFileUploadClientComplete<Metadata> =
 {
-  file: SocketIOFileUploadClientStart<Metadata>['file']
+  file: SocketIOFileWithMetadata<Metadata>
 
   /**
    * `true` if the server-side implementation ran without error; `false` otherwise.
@@ -169,7 +168,7 @@ export type SocketIOFileUploadClientComplete<Metadata> =
 
 export type SocketIOFileUploadClientError<Metadata> =
 {
-  file: SocketIOFileUploadClientStart<Metadata>['file']
+  file: SocketIOFileWithMetadata<Metadata>
 
   /**
    * The error message.
