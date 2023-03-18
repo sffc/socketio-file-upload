@@ -1,7 +1,7 @@
 import { Socket } from 'socket.io-client';
 
-export type SocketIOFileUploadClientOptions =
-{
+export type SocketIOFileUploadClientOptionsProps = typeof SocketIOFileUploadClientOptions.prototype;
+export abstract class SocketIOFileUploadClientOptions {
   /**
    * Define if data should be sent as a string or as a buffer.
    * (`false` reads files as an octet array)
@@ -235,9 +235,9 @@ export declare interface SocketIOFileUploadClient<Metadata>
   addEventListener(type: 'error', callback: (event: SocketIOFileUploadClientError<Metadata>) => void, options?: AddEventListenerOptions|boolean): void;
 }
 
-export class SocketIOFileUploadClient<Metadata = unknown> implements EventTarget
+export class SocketIOFileUploadClient<Metadata = unknown> implements EventTarget extends SocketIOFileUploadClientOptions
 {
-  constructor(socket: Socket, options?: SocketIOFileUploadClientOptions);
+  constructor(socket: Socket, options?: Partial<SocketIOFileUploadClientOptionsProps>);
 
   /**
    * Resets file input elements to their empty state after the user selects a file. If you do not reset the file input elements, if the user selects a file with the same name as the previous file, then the second file may not be uploaded.
