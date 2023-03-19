@@ -235,7 +235,7 @@ export declare interface SocketIOFileUploadClient<Metadata = unknown, ClientDeta
   addEventListener(type: 'error', callback: (event: SocketIOFileUploadClientError<Metadata>) => void, options?: AddEventListenerOptions|boolean): void;
 }
 
-export class SocketIOFileUploadClient<Metadata = unknown, ClientDetail = unknown> implements EventTarget extends SocketIOFileUploadClientOptions
+export class SocketIOFileUploadClient<Metadata = unknown, ClientDetail = unknown> extends SocketIOFileUploadClientOptions implements EventTarget
 {
   constructor(socket: Socket, options?: Partial<SocketIOFileUploadClientOptionsProps>);
 
