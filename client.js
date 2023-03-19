@@ -1,3 +1,4 @@
+/// <reference path="./client.d.ts" />
 /*
  *                 Copyright (C) 2015 Shane Carr and others
  *                               X11 License
