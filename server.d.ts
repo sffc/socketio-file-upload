@@ -168,87 +168,78 @@ export type FileInfo<Metadata, ClientDetail> = {
   id: number
 }
 
-export type FileUploadExtendedEvent<Metadata> =
-{
-  file: FileUploadBaseEvent<Metadata>['file'] & {
-    /**
-     * The new basename of the file on the server.
-     *
-     * @param defined if you are letting the module save the file for you
-     * @default undefined
-     */
-    base: string|undefined
+export type FileInfoExtended<Metadata, ClientDetail> = FileInfo<Metadata, ClientDetail> & {
+  /**
+   * The new basename of the file on the server.
+   *
+   * @param defined if you are letting the module save the file for you
+   * @default undefined
+   */
+  base?: string
 
-    /**
-     * The full path at which the uploaded file is saved.
-     *
-     * @param defined if you are letting the module save the file for you
-     * @default undefined
-     */
-    pathName: string|undefined
-  }
+  /**
+   * The full path at which the uploaded file is saved.
+   *
+   * @param defined if you are letting the module save the file for you
+   * @default undefined
+   */
+  pathName?: string
 }
 
-export type FileUploadProgressEvent<Metadata> =
+export type FileUploadStartEvent<Metadata, ClientDetail> =
+{
+  /**
+   * The file object that is being uploaded.
+   */
+  file: FileInfo<Metadata, ClientDetail>
+}
+
+export type FileUploadProgressEvent<Metadata, ClientDetail> =
 {
   buffer: Buffer
-  file  : FileUploadExtendedEvent<Metadata>['file']
+  file  : FileInfoExtended<Metadata, ClientDetail>
 }
 
-export type FileUploadCompleteEvent<Metadata> =
+export type FileUploadCompleteEvent<Metadata, ClientDetail> =
 {
   interrupt: boolean
-  file: FileUploadExtendedEvent<Metadata>['file']
+  file: FileInfoExtended<Metadata, ClientDetail>
 }
 
-export type FileUploadSavedEvent<Metadata> =
+export type FileUploadSavedEvent<Metadata, ClientDetail> =
 {
-  file: FileUploadExtendedEvent<Metadata>['file']
+  file: FileInfoExtended<Metadata, ClientDetail>
 }
 
-export type FileUploadErrorEvent<Metadata> =
+export type FileUploadErrorEvent<Metadata, ClientDetail> =
 {
   memo: string
   error: Error
-  file : FileUploadExtendedEvent<Metadata>['file']
+  file : FileInfoExtended<Metadata, ClientDetail>
 }
 
-export type FileInfo<Metadata, ClientDetail> = {
-  file: {
-    name: string,
-    mtime: Date,
-    encoding: 'text' | 'octet',
-    clientDetail: ClientDetail,
-    meta: Metadata,
-    id: number,
-    size: number,
-    bytesLoaded: number,
-    success: boolean
-  }
-}
-
-export declare interface SocketIOFileUploadServer<Metadata>
+export declare interface SocketIOFileUploadServer<Metadata = unknown, ClientDetail = unknown>
 {
   /**
    * The client has started the upload process, and the server is now processing the request.
    * @param event
    * @param listener
    */
-  on(event: 'start', listener: (event: FileUploadBaseEvent<Metadata>) => void): this;
+  on(event: 'start', listener: (event: FileUploadStartEvent<Metadata, ClientDetail>) => void): this;
 
   /**
    * Data has been received from the client.
    * @param event
    * @param listener
    */
-  on(event: 'progress', listener: (error: FileUploadProgressEvent<Metadata>) => void): this;
+  on(event: 'progress', listener: (error: FileUploadProgressEvent<Metadata, ClientDetail>) => void): this;
 
   /**
    * The transmission of a file is complete.
    * @param event
    * @param listener
    */
-  on(event: 'complete', listener: (error: FileUploadCompleteEvent<Metadata>) => void): this;
+  on(event: 'complete', listener: (error: FileUploadCompleteEvent<Metadata, ClientDetail>) => void): this;
 
   /**
    * The file has been successfully saved to disk.
@@ -259,14 +250,14 @@ export declare interface SocketIOFileUploadServer<Metadata>
    * @param event
    * @param listener
    */
-  on(event: 'saved', listener: (error: FileUploadSavedEvent<Metadata>) => void): this;
+  on(event: 'saved', listener: (error: FileUploadSavedEvent<Metadata, ClientDetail>) => void): this;
 
   /**
    * An error was encountered in the saving of the file.
    * @param event
    * @param listener
    */
-  on(event: 'error', listener: (error: FileUploadErrorEvent<Metadata>) => void): this;
+  on(event: 'error', listener: (error: FileUploadErrorEvent<Metadata, ClientDetail>) => void): this;
 }
 
 export class SocketIOFileUploadServer<Metadata = unknown, ClientDetail = unknown> extends SocketIOFileUploadServerOptions, EventEmitter
@@ -281,7 +272,7 @@ export class SocketIOFileUploadServer<Metadata = unknown, ClientDetail = unknown
    * @param event contains { file: fileInfo }
    * @param callback call it with true to start upload, false to abort
    */
-  uploadValidator(event: FileInfo<Metadata, ClientDetail>, callback: (valid: boolean) => void): void
+  uploadValidator(event: {file: FileInfo<Metadata, ClientDetail>}, callback: (valid: boolean) => void): void
 
   /**
    * Listen for uploads occuring on this Socket.IO socket.
