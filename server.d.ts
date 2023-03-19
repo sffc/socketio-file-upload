@@ -4,171 +4,9 @@ import { WriteStream }  from 'fs';
 import { Socket }       from 'socket.io';
 
 
-export type FileUploadBaseEvent<Metadata> =
+export type SocketIOFileUploadServerProps = typeof SocketIOFileUploadServerOptions.prototype;
+export abstract class SocketIOFileUploadServerOptions
 {
-  /**
-   * The file object that is being uploaded.
-   */
-  file: {
-    /**
-     * The name of the file as it was originally uploaded.
-     */
-    name: string
-
-    /**
-     * The modified time of the file as it was originally uploaded.
-     */
-    mtime: Date
-
-    /**
-     * The encoding of the file as it was originally uploaded.
-     */
-    encoding: 'text' | 'octet'
-
-    /**
-     * The meta data defined by the client.
-     */
-    meta: Metadata
-
-    /**
-     * The meta data defined by the server
-     */
-    clientDetail: Metadata
-
-    /**
-     * The success status of the file upload.
-     */
-    success: boolean
-
-    /**
-     * The number of bytes that have been uploaded.
-     */
-    bytesLoaded: number
-
-    /**
-     * The size of the file in bytes.
-     */
-    size: number
-
-    /**
-     * The ID of the file.
-     */
-    id: number
-
-    /**
-     * The WriteStream object that is used to write the file to the disk.
-     */
-    writeStream: WriteStream
-  }
-}
-
-export type FileUploadExtendedEvent<Metadata> =
-{
-  file: FileUploadBaseEvent<Metadata>['file'] & {
-    /**
-     * The new basename of the file on the server.
-     *
-     * @param defined if you are letting the module save the file for you
-     * @default undefined
-     */
-    base: string|undefined
-
-    /**
-     * The full path at which the uploaded file is saved.
-     *
-     * @param defined if you are letting the module save the file for you
-     * @default undefined
-     */
-    pathName: string|undefined
-  }
-}
-
-export type FileUploadProgressEvent<Metadata> =
-{
-  buffer: Buffer
-  file  : FileUploadExtendedEvent<Metadata>['file']
-}
-
-export type FileUploadCompleteEvent<Metadata> =
-{
-  interrupt: boolean
-  file: FileUploadExtendedEvent<Metadata>['file']
-}
-
-export type FileUploadSavedEvent<Metadata> =
-{
-  file: FileUploadExtendedEvent<Metadata>['file']
-}
-
-export type FileUploadErrorEvent<Metadata> =
-{
-  memo: string
-  error: Error
-  file : FileUploadExtendedEvent<Metadata>['file']
-}
-
-export type FileInfo<Metadata, ClientDetail> = {
-  file: {
-    name: string,
-    mtime: Date,
-    encoding: 'text' | 'octet',
-    clientDetail: ClientDetail,
-    meta: Metadata,
-    id: number,
-    size: number,
-    bytesLoaded: number,
-    success: boolean
-  }
-}
-
-export declare interface SocketIOFileUploadServer<Metadata>
-{
-  /**
-   * The client has started the upload process, and the server is now processing the request.
-   * @param event
-   * @param listener
-   */
-  on(event: 'start', listener: (event: FileUploadBaseEvent<Metadata>) => void): this;
-
-  /**
-   * Data has been received from the client.
-   * @param event
-   * @param listener
-   */
-  on(event: 'progress', listener: (error: FileUploadProgressEvent<Metadata>) => void): this;
-
-  /**
-   * The transmission of a file is complete.
-   * @param event
-   * @param listener
-   */
-  on(event: 'complete', listener: (error: FileUploadCompleteEvent<Metadata>) => void): this;
-
-  /**
-   * The file has been successfully saved to disk.
-   *
-   * (In this event, you can safely move the saved file to a new location)
-   *
-   * It is recommended that you check `event.file.success` to tell whether or not the file was saved without errors.
-   * @param event
-   * @param listener
-   */
-  on(event: 'saved', listener: (error: FileUploadSavedEvent<Metadata>) => void): this;
-
-  /**
-   * An error was encountered in the saving of the file.
-   * @param event
-   * @param listener
-   */
-  on(event: 'error', listener: (error: FileUploadErrorEvent<Metadata>) => void): this;
-}
-
-export class SocketIOFileUploadServer<Metadata = unknown, ClientDetail = unknown> extends EventEmitter
-{
-  constructor(socket: Socket);
-
-  static router: Router
-
   /**
    * If specified, the module will attempt to save uploaded files in this directory.
    * The module will intelligently suffix numbers to the uploaded filenames
@@ -281,7 +119,161 @@ export class SocketIOFileUploadServer<Metadata = unknown, ClientDetail = unknown
    * @default false
    */
   exposePrivateFunction: boolean
+}
 
+export type FileInfo<Metadata, ClientDetail> = {
+  /**
+   * The name of the file as it was originally uploaded.
+   */
+  name: string
+
+  /**
+   * The modified time of the file as it was originally uploaded.
+   */
+  mtime: Date
+
+  /**
+   * The encoding of the file as it was originally uploaded.
+   */
+  encoding: 'text' | 'octet'
+
+  /**
+   * The meta data defined by the client.
+   */
+  meta: Metadata
+
+  /**
+   * The meta data defined by the server
+   */
+  clientDetail: Metadata
+
+  /**
+   * The success status of the file upload.
+   */
+  success: boolean
+
+  /**
+   * The number of bytes that have been uploaded.
+   */
+  bytesLoaded: number
+
+  /**
+   * The size of the file in bytes.
+   */
+  size: number
+
+  /**
+   * The ID of the file.
+   */
+  id: number
+}
+
+export type FileUploadExtendedEvent<Metadata> =
+{
+  file: FileUploadBaseEvent<Metadata>['file'] & {
+    /**
+     * The new basename of the file on the server.
+     *
+     * @param defined if you are letting the module save the file for you
+     * @default undefined
+     */
+    base: string|undefined
+
+    /**
+     * The full path at which the uploaded file is saved.
+     *
+     * @param defined if you are letting the module save the file for you
+     * @default undefined
+     */
+    pathName: string|undefined
+  }
+}
+
+export type FileUploadProgressEvent<Metadata> =
+{
+  buffer: Buffer
+  file  : FileUploadExtendedEvent<Metadata>['file']
+}
+
+export type FileUploadCompleteEvent<Metadata> =
+{
+  interrupt: boolean
+  file: FileUploadExtendedEvent<Metadata>['file']
+}
+
+export type FileUploadSavedEvent<Metadata> =
+{
+  file: FileUploadExtendedEvent<Metadata>['file']
+}
+
+export type FileUploadErrorEvent<Metadata> =
+{
+  memo: string
+  error: Error
+  file : FileUploadExtendedEvent<Metadata>['file']
+}
+
+export type FileInfo<Metadata, ClientDetail> = {
+  file: {
+    name: string,
+    mtime: Date,
+    encoding: 'text' | 'octet',
+    clientDetail: ClientDetail,
+    meta: Metadata,
+    id: number,
+    size: number,
+    bytesLoaded: number,
+    success: boolean
+  }
+}
+
+export declare interface SocketIOFileUploadServer<Metadata>
+{
+  /**
+   * The client has started the upload process, and the server is now processing the request.
+   * @param event
+   * @param listener
+   */
+  on(event: 'start', listener: (event: FileUploadBaseEvent<Metadata>) => void): this;
+
+  /**
+   * Data has been received from the client.
+   * @param event
+   * @param listener
+   */
+  on(event: 'progress', listener: (error: FileUploadProgressEvent<Metadata>) => void): this;
+
+  /**
+   * The transmission of a file is complete.
+   * @param event
+   * @param listener
+   */
+  on(event: 'complete', listener: (error: FileUploadCompleteEvent<Metadata>) => void): this;
+
+  /**
+   * The file has been successfully saved to disk.
+   *
+   * (In this event, you can safely move the saved file to a new location)
+   *
+   * It is recommended that you check `event.file.success` to tell whether or not the file was saved without errors.
+   * @param event
+   * @param listener
+   */
+  on(event: 'saved', listener: (error: FileUploadSavedEvent<Metadata>) => void): this;
+
+  /**
+   * An error was encountered in the saving of the file.
+   * @param event
+   * @param listener
+   */
+  on(event: 'error', listener: (error: FileUploadErrorEvent<Metadata>) => void): this;
+}
+
+export class SocketIOFileUploadServer<Metadata = unknown, ClientDetail = unknown> extends SocketIOFileUploadServerOptions, EventEmitter
+{
+  static router: Router
+
+  constructor(options?: Partial<SocketIOFileUploadServerProps>);
 
   /**
    * Can be overridden to enable async validation and preparing.
