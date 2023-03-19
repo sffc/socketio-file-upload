@@ -2,6 +2,7 @@ import { EventEmitter } from 'events';
 import { Router }       from 'express';
 import { WriteStream }  from 'fs';
 import { Socket }       from 'socket.io';
+import http             from 'http';
 
 
 export type SocketIOFileUploadServerProps = typeof SocketIOFileUploadServerOptions.prototype;
@@ -111,7 +112,7 @@ export abstract class SocketIOFileUploadServerOptions
    *
    * @default false
    */
-  wrapData: boolean;
+  wrapData: boolean|object;
 
   /**
    * Allow user to access to some private function to customize message reception.
@@ -121,7 +122,8 @@ export abstract class SocketIOFileUploadServerOptions
   exposePrivateFunction: boolean
 }
 
-export type FileInfo<Metadata, ClientDetail> = {
+export type FileInfo<Metadata, ClientDetail> =
+{
   /**
    * The name of the file as it was originally uploaded.
    */
@@ -145,7 +147,7 @@ export type FileInfo<Metadata, ClientDetail> = {
   /**
    * The meta data defined by the server
    */
-  clientDetail: Metadata
+  clientDetail: ClientDetail
 
   /**
    * The success status of the file upload.
@@ -168,7 +170,8 @@ export type FileInfo<Metadata, ClientDetail> = {
   id: number
 }
 
-export type FileInfoExtended<Metadata, ClientDetail> = FileInfo<Metadata, ClientDetail> & {
+export type FileInfoExtended<Metadata, ClientDetail> =
+{
   /**
    * The new basename of the file on the server.
    *
@@ -197,25 +200,25 @@ export type FileUploadStartEvent<Metadata, ClientDetail> =
 export type FileUploadProgressEvent<Metadata, ClientDetail> =
 {
   buffer: Buffer
-  file  : FileInfoExtended<Metadata, ClientDetail>
+  file  : FileInfo<Metadata, ClientDetail> & FileInfoExtended<Metadata, ClientDetail>
 }
 
 export type FileUploadCompleteEvent<Metadata, ClientDetail> =
 {
   interrupt: boolean
-  file: FileInfoExtended<Metadata, ClientDetail>
+  file: FileInfo<Metadata, ClientDetail> & FileInfoExtended<Metadata, ClientDetail>
 }
 
 export type FileUploadSavedEvent<Metadata, ClientDetail> =
 {
-  file: FileInfoExtended<Metadata, ClientDetail>
+  file: FileInfo<Metadata, ClientDetail> & Required<FileInfoExtended<Metadata, ClientDetail>>
 }
 
 export type FileUploadErrorEvent<Metadata, ClientDetail> =
 {
   memo: string
   error: Error
-  file : FileInfoExtended<Metadata, ClientDetail>
+  file : FileInfo<Metadata, ClientDetail> & FileInfoExtended<Metadata, ClientDetail>
 }
 
 export declare interface SocketIOFileUploadServer<Metadata = unknown, ClientDetail = unknown>
@@ -262,7 +265,8 @@ export declare interface SocketIOFileUploadServer<Metadata = unknown, ClientDeta
 
 export class SocketIOFileUploadServer<Metadata = unknown, ClientDetail = unknown> extends SocketIOFileUploadServerOptions, EventEmitter
 {
-  static router: Router
+  static router: http.RequestListener
+  static listen: (app: http.Server) => void
 
   constructor(options?: Partial<SocketIOFileUploadServerProps>);
 
