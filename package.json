@@ -9,18 +9,21 @@
     "socket.io"
   ],
   "devDependencies": {
+    "@types/chrome-location": "^1.2.0",
+    "@types/concat-stream": "^2.0.0",
     "@types/express": "^4.17.17",
+    "@types/tape": "^4.13.2",
     "browserify": "^16.5.1",
     "buffer-equals": "^1.0.3",
     "chrome-location": "^1.2.1",
     "concat-stream": "^1.6.2",
-    "ecstatic": "^4.1.4",
     "eslint": "^5.16.0",
     "google-closure-compiler": "^20181028.0.1",
     "phantom": "^6.3.0",
     "socket.io": "^4.6.1",
     "socket.io-client": "^4.6.1",
     "tape": "^4.13.3",
+    "ts-node": "^10.9.1",
     "typescript": "^4.9.5"
   },
   "files": [
@@ -36,7 +39,9 @@
   "scripts": {
     "lint": "eslint .",
     "pretest": "browserify test/serve/browser-file-transfer.js -o test/serve/bundle.js",
-    "test": "tape test/*.js",
+    "test:ts": "ts-node node_modules/tape/bin/tape test/*.ts",
+    "test:js": "tape test/*.js",
+    "test": "npm run test:js && npm run test:ts",
     "minify:compile": "google-closure-compiler --js=client.js --js_output_file=client.min.js.tmp",
     "minify:license": "echo \"$(head -n5 client.min.js)\n$(cat client.min.js.tmp)\" > client.min.js.tmp",
     "minify:move": "mv client.min.js.tmp client.min.js",
