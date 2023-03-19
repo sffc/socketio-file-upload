@@ -109,6 +109,7 @@ export abstract class SocketIOFileUploadClientOptions {
 	 */
   exposePrivateFunction: boolean
 }
+
 export type SocketIOFileWithMetadata<Metadata> = File & { meta: Metadata }
 
 export type SocketIOFileUploadClientChoose =
@@ -181,7 +182,7 @@ export type SocketIOFileUploadClientError<Metadata> =
   code: string
 }
 
-export declare interface SocketIOFileUploadClient<Metadata, ClientDetail>
+export declare interface SocketIOFileUploadClient<Metadata = unknown, ClientDetail = unknown>
 {
   addEventListener(type: string, callback: EventListenerOrEventListenerObject|null, options?: boolean|AddEventListenerOptions): void;
 
