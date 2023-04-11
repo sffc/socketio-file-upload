@@ -610,11 +610,12 @@ function SocketIOFileUploadServer(options) {
 	 * Public method.  Abort an upload that may be in progress.  Throws an
 	 * exception if the specified file upload is not in progress.
 	 *
-	 * @param  {String} id     The ID of the file upload to abort.
-	 * @param  {Socket} socket The socket that this instance is connected to.
+	 * @param  {String} id      The ID of the file upload to abort.
+	 * @param  {Socket} socket  The socket that this instance is connected to.
+	 * @param  {Any}    message Custom error message
 	 * @return {void}
 	 */
-	this.abort = function (id, socket) {
+	this.abort = function (id, socket, message) {
 		if (!socket) {
 			throw new Error("Please pass the socket instance as the second argument to abort()");
 		}
@@ -627,7 +628,7 @@ function SocketIOFileUploadServer(options) {
 		fileInfo.success = false;
 		socket.emit(_getTopicName("_error"), _wrapData({
 			id: id,
-			message: "File upload aborted by server"
+			message: message || "File upload aborted by server"
 		}, "error"));
 		_cleanupFile(id);
 	};
